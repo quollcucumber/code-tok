@@ -59,6 +59,17 @@ export function useReactions() {
         } catch (err) {
           setError(`Couldn't save that: ${err.message}`)
         }
+        if (name === 'likes') {
+          // Mirror likes publicly so friends can see who liked a blog.
+          const likerRef = doc(db, 'blogLikes', blogId, 'likers', user.uid)
+          const op = has
+            ? deleteDoc(likerRef)
+            : setDoc(likerRef, {
+                name: user.displayName || user.email || 'anonymous',
+                createdAt: serverTimestamp(),
+              })
+          op.catch(() => {})
+        }
       } else {
         const local = readLocal()
         if (has) delete local[name][blogId]

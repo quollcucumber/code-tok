@@ -1,8 +1,26 @@
 import { useEffect, useState } from 'react'
 import DOMPurify from 'dompurify'
 import { fetchBlogContent, ratingColor, timeAgo } from '../lib/codeforces'
+import { useFriendLikes } from '../hooks/useFriends'
 
-export default function BlogCard({ entry, author, active, liked, saved, onLike, onSave, onComments }) {
+function friendLikeText(likers) {
+  const names = likers.map((f) => f.profile?.name || 'a friend')
+  if (names.length === 1) return `Liked by ${names[0]}`
+  if (names.length === 2) return `Liked by ${names[0]} and ${names[1]}`
+  return `Liked by ${names[0]} and ${names.length - 1} other friends`
+}
+
+export default function BlogCard({
+  entry,
+  author,
+  friends,
+  active,
+  liked,
+  saved,
+  onLike,
+  onSave,
+  onComments,
+}) {
   const [content, setContent] = useState(null)
   const [error, setError] = useState(false)
 
@@ -22,6 +40,7 @@ export default function BlogCard({ entry, author, active, liked, saved, onLike, 
   }, [active, content, entry.id])
 
   const color = ratingColor(author?.rating)
+  const friendLikers = useFriendLikes(entry.id, friends, active)
 
   return (
     <article className="card-layout">
@@ -50,6 +69,20 @@ export default function BlogCard({ entry, author, active, liked, saved, onLike, 
           </a>
         </header>
         <h2 className="card-title">{entry.title}</h2>
+        {friendLikers.length > 0 && (
+          <div className="friend-likes">
+            {friendLikers.slice(0, 3).map((f) =>
+              f.profile?.photo ? (
+                <img className="avatar avatar-xs" src={f.profile.photo} alt="" key={f.uid} />
+              ) : (
+                <div className="avatar avatar-xs avatar-fallback" key={f.uid}>
+                  {(f.profile?.name || '?')[0].toUpperCase()}
+                </div>
+              )
+            )}
+            <span className="friend-likes-text">❤️ {friendLikeText(friendLikers)}</span>
+          </div>
+        )}
         <div className="card-content">
           {content != null ? (
             <div className="blog-html" dangerouslySetInnerHTML={{ __html: content }} />

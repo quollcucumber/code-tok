@@ -14,6 +14,9 @@ Scroll Codeforces blogs like reels. A TikTok-style vertical feed of recent Codef
 - **Comments** — per-blog comment threads stored in Firestore (sign in to post)
 - **Infinite feed** — when the recent blogs run out, older blogs keep loading as you scroll
 - **Seen tracking** — blogs you've viewed are skipped on your next visit (synced to your account when signed in, localStorage otherwise)
+- **Friends & messages** — send friend requests by email or display name, accept/decline, and chat 1-on-1
+- **Friend likes** — each blog shows which of your friends liked it
+- **Profiles** — display name and profile picture (avatars are compressed in the browser and stored in Firestore, so no paid Cloud Storage plan is needed)
 
 ## Getting started
 
@@ -46,6 +49,36 @@ The feed works immediately with no configuration (likes/saves fall back to local
            && request.resource.data.text.size() > 0
            && request.resource.data.text.size() <= 2000;
          allow delete: if request.auth != null && request.auth.uid == resource.data.uid;
+       }
+       match /profiles/{uid} {
+         allow read: if true;
+         allow write: if request.auth != null && request.auth.uid == uid;
+       }
+       match /friendships/{pairId} {
+         allow read: if request.auth != null && request.auth.uid in resource.data.members;
+         allow create: if request.auth != null
+           && request.resource.data.from == request.auth.uid
+           && request.resource.data.status == 'pending'
+           && request.auth.uid in request.resource.data.members
+           && request.resource.data.members.size() == 2;
+         allow update: if request.auth != null
+           && request.auth.uid == resource.data.to
+           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+           && request.resource.data.status == 'accepted';
+         allow delete: if request.auth != null && request.auth.uid in resource.data.members;
+       }
+       match /chats/{pairId}/messages/{msgId} {
+         allow read: if request.auth != null && pairId.split('_').hasAny([request.auth.uid]);
+         allow create: if request.auth != null
+           && request.resource.data.from == request.auth.uid
+           && pairId.split('_').hasAny([request.auth.uid])
+           && request.resource.data.text is string
+           && request.resource.data.text.size() > 0
+           && request.resource.data.text.size() <= 2000;
+       }
+       match /blogLikes/{blogId}/likers/{uid} {
+         allow read: if true;
+         allow write: if request.auth != null && request.auth.uid == uid;
        }
      }
    }
