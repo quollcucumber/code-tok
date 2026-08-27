@@ -26,10 +26,12 @@ function getChunk(n, manifest) {
   return chunkCache.get(n)
 }
 
-// Highest blog id covered by the index, or null if no index is deployed.
-export async function indexMaxId() {
+// Id range [minId, maxId] covered by the index, or null if none is deployed.
+// Blogs below minId exist but weren't crawled yet (partial index).
+export async function indexRange() {
   const manifest = await getManifest()
-  return manifest ? manifest.maxId : null
+  if (!manifest) return null
+  return { maxId: manifest.maxId, minId: manifest.minId || 1 }
 }
 
 // Returns up to `count` indexed entries with id < beforeId, newest first,
@@ -38,9 +40,10 @@ export async function fetchIndexedOlderEntries(beforeId, count, shouldSkip) {
   const manifest = await getManifest()
   if (!manifest) return null
   const topChunk = Math.floor(manifest.maxId / manifest.chunkSize)
+  const bottomChunk = Math.floor((manifest.minId || 1) / manifest.chunkSize)
   let chunk = Math.min(Math.floor((beforeId - 1) / manifest.chunkSize), topChunk)
   const entries = []
-  while (entries.length < count && chunk >= 0) {
+  while (entries.length < count && chunk >= bottomChunk) {
     const list = await getChunk(chunk, manifest)
     for (const e of list) {
       if (e.i >= beforeId || shouldSkip(e.i)) continue
@@ -57,7 +60,10 @@ export async function fetchIndexedOlderEntries(beforeId, count, shouldSkip) {
     }
     if (entries.length < count) chunk--
   }
+  // When the walk exhausts the index, hand off at minId so uncrawled older
+  // blogs (partial index) can still be discovered via the live API.
+  const minId = manifest.minId || 1
   const nextBeforeId =
-    entries.length === count ? entries[entries.length - 1].id : 0
+    entries.length === count ? entries[entries.length - 1].id : minId > 1 ? minId : 0
   return { entries, nextBeforeId }
 }
