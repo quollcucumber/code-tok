@@ -1,15 +1,21 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { fetchRecentBlogEntries, fetchUsers } from '../lib/codeforces'
-import { useReactions } from '../hooks/useReactions'
 import BlogCard from './BlogCard'
+import CommentsPanel from './CommentsPanel'
 
-export default function Feed() {
+export default function Feed({ reactions, minScore, onSignIn }) {
   const [entries, setEntries] = useState([])
   const [authors, setAuthors] = useState({})
   const [activeIndex, setActiveIndex] = useState(0)
   const [status, setStatus] = useState('loading')
+  const [commentsFor, setCommentsFor] = useState(null)
   const containerRef = useRef(null)
-  const { likes, saves, error, clearError, toggleLike, toggleSave } = useReactions()
+  const { likes, saves, error, clearError, toggleLike, toggleSave } = reactions
+
+  const visible = useMemo(
+    () => (minScore == null ? entries : entries.filter((e) => e.rating >= minScore)),
+    [entries, minScore]
+  )
 
   useEffect(() => {
     let cancelled = false
@@ -31,7 +37,7 @@ export default function Feed() {
 
   useEffect(() => {
     const container = containerRef.current
-    if (!container || entries.length === 0) return
+    if (!container || visible.length === 0) return
     const observer = new IntersectionObserver(
       (obsEntries) => {
         for (const obs of obsEntries) {
@@ -45,7 +51,7 @@ export default function Feed() {
     for (const el of container.querySelectorAll('.card')) observer.observe(el)
     container.focus()
     return () => observer.disconnect()
-  }, [entries])
+  }, [visible])
 
   if (status === 'loading') {
     return <div className="feed-status">Loading fresh blogs from Codeforces…</div>
@@ -55,6 +61,13 @@ export default function Feed() {
   }
   if (status === 'empty') {
     return <div className="feed-status">No blogs found right now.</div>
+  }
+  if (visible.length === 0) {
+    return (
+      <div className="feed-status">
+        Every blog was filtered out (score ≥ {minScore}). Try lowering the filter.
+      </div>
+    )
   }
 
   return (
@@ -67,7 +80,7 @@ export default function Feed() {
           </button>
         </div>
       )}
-      {entries.map((entry, i) => (
+      {visible.map((entry, i) => (
         <div className="card" key={entry.id} data-index={i}>
           <BlogCard
             entry={entry}
@@ -77,9 +90,17 @@ export default function Feed() {
             saved={Boolean(saves[entry.id])}
             onLike={() => toggleLike(entry)}
             onSave={() => toggleSave(entry)}
+            onComments={() => setCommentsFor(entry)}
           />
         </div>
       ))}
+      {commentsFor && (
+        <CommentsPanel
+          entry={commentsFor}
+          onClose={() => setCommentsFor(null)}
+          onSignIn={onSignIn}
+        />
+      )}
     </div>
   )
 }
