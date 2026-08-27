@@ -23,6 +23,20 @@ function stripTags(html) {
   return div.textContent || ''
 }
 
+const contentCache = new Map()
+
+function mapEntry(entry) {
+  return {
+    id: entry.id,
+    title: stripTags(entry.title).trim(),
+    authorHandle: entry.authorHandle,
+    rating: entry.rating,
+    creationTimeSeconds: entry.creationTimeSeconds,
+    tags: entry.tags || [],
+    url: `https://codeforces.com/blog/entry/${entry.id}`,
+  }
+}
+
 export async function fetchRecentBlogEntries(maxCount = 100) {
   const actions = await throttledFetch(`${API_BASE}/recentActions?maxCount=${maxCount}`)
   const seen = new Set()
@@ -31,20 +45,35 @@ export async function fetchRecentBlogEntries(maxCount = 100) {
     const entry = action.blogEntry
     if (!entry || seen.has(entry.id)) continue
     seen.add(entry.id)
-    entries.push({
-      id: entry.id,
-      title: stripTags(entry.title).trim(),
-      authorHandle: entry.authorHandle,
-      rating: entry.rating,
-      creationTimeSeconds: entry.creationTimeSeconds,
-      tags: entry.tags || [],
-      url: `https://codeforces.com/blog/entry/${entry.id}`,
-    })
+    entries.push(mapEntry(entry))
   }
   return entries
 }
 
-const contentCache = new Map()
+// Blog entry ids are roughly sequential, so older blogs can be discovered by
+// walking ids downward. Missing ids (deleted/draft blogs) are skipped.
+export async function fetchOlderBlogEntries(beforeId, count, shouldSkip) {
+  const entries = []
+  let id = beforeId - 1
+  let attempts = 0
+  const maxAttempts = count * 8
+  while (entries.length < count && id > 0 && attempts < maxAttempts) {
+    if (shouldSkip(id)) {
+      id--
+      continue
+    }
+    attempts++
+    try {
+      const entry = await throttledFetch(`${API_BASE}/blogEntry.view?blogEntryId=${id}`)
+      contentCache.set(entry.id, Promise.resolve(entry.content))
+      entries.push(mapEntry(entry))
+    } catch {
+      // deleted or inaccessible blog; keep walking
+    }
+    id--
+  }
+  return { entries, nextBeforeId: id + 1 }
+}
 
 export function fetchBlogContent(blogEntryId) {
   if (!contentCache.has(blogEntryId)) {

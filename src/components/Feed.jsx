@@ -1,15 +1,24 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { fetchRecentBlogEntries, fetchUsers } from '../lib/codeforces'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { fetchOlderBlogEntries, fetchRecentBlogEntries, fetchUsers } from '../lib/codeforces'
+import { useSeen } from '../hooks/useSeen'
 import BlogCard from './BlogCard'
 import CommentsPanel from './CommentsPanel'
+
+const LOAD_BATCH = 6
+const LOAD_AHEAD = 4
 
 export default function Feed({ reactions, minScore, onSignIn }) {
   const [entries, setEntries] = useState([])
   const [authors, setAuthors] = useState({})
   const [activeIndex, setActiveIndex] = useState(0)
   const [status, setStatus] = useState('loading')
+  const [loadingMore, setLoadingMore] = useState(false)
   const [commentsFor, setCommentsFor] = useState(null)
   const containerRef = useRef(null)
+  const knownIdsRef = useRef(new Set())
+  const nextBeforeIdRef = useRef(null)
+  const loadingMoreRef = useRef(false)
+  const { isSeen, markSeen, loaded: seenLoaded } = useSeen()
   const { likes, saves, error, clearError, toggleLike, toggleSave } = reactions
 
   const visible = useMemo(
@@ -17,15 +26,48 @@ export default function Feed({ reactions, minScore, onSignIn }) {
     [entries, minScore]
   )
 
+  const addEntries = useCallback(async (list) => {
+    const fresh = list.filter((e) => !knownIdsRef.current.has(e.id))
+    if (fresh.length === 0) return
+    for (const e of fresh) knownIdsRef.current.add(e.id)
+    setEntries((prev) => [...prev, ...fresh])
+    const users = await fetchUsers(fresh.map((e) => e.authorHandle))
+    setAuthors((prev) => ({ ...prev, ...users }))
+  }, [])
+
+  const loadMore = useCallback(async () => {
+    if (loadingMoreRef.current || nextBeforeIdRef.current == null) return
+    loadingMoreRef.current = true
+    setLoadingMore(true)
+    try {
+      const { entries: older, nextBeforeId } = await fetchOlderBlogEntries(
+        nextBeforeIdRef.current,
+        LOAD_BATCH,
+        (id) => knownIdsRef.current.has(id) || isSeen(id)
+      )
+      nextBeforeIdRef.current = nextBeforeId > 0 ? nextBeforeId : null
+      await addEntries(older)
+    } catch {
+      // transient API failure; the next scroll retries
+    } finally {
+      loadingMoreRef.current = false
+      setLoadingMore(false)
+    }
+  }, [addEntries, isSeen])
+
   useEffect(() => {
+    if (!seenLoaded || knownIdsRef.current.size > 0) return
     let cancelled = false
     fetchRecentBlogEntries()
       .then(async (list) => {
         if (cancelled) return
-        setEntries(list)
-        setStatus(list.length ? 'ready' : 'empty')
-        const users = await fetchUsers(list.map((e) => e.authorHandle))
-        if (!cancelled) setAuthors(users)
+        if (list.length === 0) {
+          setStatus('empty')
+          return
+        }
+        nextBeforeIdRef.current = Math.max(...list.map((e) => e.id)) + 1
+        setStatus('ready')
+        await addEntries(list.filter((e) => !isSeen(e.id)))
       })
       .catch(() => {
         if (!cancelled) setStatus('error')
@@ -33,7 +75,17 @@ export default function Feed({ reactions, minScore, onSignIn }) {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [seenLoaded, addEntries, isSeen])
+
+  useEffect(() => {
+    if (status !== 'ready') return
+    if (visible.length - activeIndex <= LOAD_AHEAD) loadMore()
+  }, [status, activeIndex, visible.length, loadMore])
+
+  useEffect(() => {
+    const entry = visible[activeIndex]
+    if (entry) markSeen(entry.id)
+  }, [visible, activeIndex, markSeen])
 
   useEffect(() => {
     const container = containerRef.current
@@ -49,9 +101,13 @@ export default function Feed({ reactions, minScore, onSignIn }) {
       { root: container, threshold: 0.6 }
     )
     for (const el of container.querySelectorAll('.card')) observer.observe(el)
-    container.focus()
     return () => observer.disconnect()
   }, [visible])
+
+  const hasVisible = visible.length > 0
+  useEffect(() => {
+    if (hasVisible) containerRef.current?.focus()
+  }, [hasVisible])
 
   if (status === 'loading') {
     return <div className="feed-status">Loading fresh blogs from Codeforces…</div>
@@ -65,7 +121,11 @@ export default function Feed({ reactions, minScore, onSignIn }) {
   if (visible.length === 0) {
     return (
       <div className="feed-status">
-        Every blog was filtered out (score ≥ {minScore}). Try lowering the filter.
+        {loadingMore
+          ? 'Finding blogs you haven\u2019t seen yet\u2026'
+          : minScore != null
+            ? `Every blog was filtered out (score \u2265 ${minScore}). Try lowering the filter.`
+            : 'Looking for more blogs\u2026'}
       </div>
     )
   }
@@ -94,6 +154,7 @@ export default function Feed({ reactions, minScore, onSignIn }) {
           />
         </div>
       ))}
+      {loadingMore && <div className="card feed-more">Loading older blogs…</div>}
       {commentsFor && (
         <CommentsPanel
           entry={commentsFor}
