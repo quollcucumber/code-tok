@@ -254,6 +254,33 @@
   color: #aaa;
 }
 
+/* Toast */
+.toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 15;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 90vw;
+  background: #3a1620;
+  border: 1px solid #fe2c55;
+  border-radius: 10px;
+  padding: 10px 14px;
+  color: #ffb3c1;
+  font-size: 13px;
+}
+
+.toast-close {
+  background: none;
+  border: none;
+  color: #ffb3c1;
+  cursor: pointer;
+  font-size: 13px;
+}
+
 /* Auth modal */
 .modal-backdrop {
   position: fixed;
