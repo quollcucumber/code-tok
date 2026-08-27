@@ -15,6 +15,7 @@ Scroll Codeforces blogs like reels. A TikTok-style vertical feed of recent Codef
 - **Infinite feed** — when the recent blogs run out, older blogs keep loading as you scroll
 - **Seen tracking** — blogs you've viewed are skipped on your next visit (synced to your account when signed in, localStorage otherwise)
 - **Friends & messages** — send friend requests by email or display name, accept/decline, and chat 1-on-1
+- **Message notifications** — a pop-up toast (and a browser notification when the tab is hidden) when a friend messages you, plus unread badges
 - **Friend likes** — each blog shows which of your friends liked it
 - **Profiles** — display name and profile picture (avatars are compressed in the browser and stored in Firestore, so no paid Cloud Storage plan is needed)
 

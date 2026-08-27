@@ -760,6 +760,62 @@
   color: #ffb3c1;
 }
 
+.unread-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #fe2c55;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.msg-toast {
+  position: fixed;
+  top: 64px;
+  right: 16px;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 320px;
+  padding: 10px 14px;
+  background: #23232f;
+  border: 1px solid #3a3a4a;
+  border-radius: 12px;
+  color: #fff;
+  cursor: pointer;
+  text-align: left;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  animation: toast-in 0.25s ease-out;
+}
+
+.msg-toast-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  font-size: 13px;
+}
+
+.msg-toast-text {
+  color: #b8b8c4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @media (max-width: 560px) {
   .card {
     padding: 56px 6px 10px;
