@@ -11,6 +11,10 @@ export default function TopBar({
   onViewChange,
   minScore,
   onMinScoreChange,
+  theme,
+  onThemeToggle,
+  hideAnnouncements,
+  onHideAnnouncementsChange,
 }) {
   const { user, logOut } = useAuth()
   const [showFilter, setShowFilter] = useState(false)
@@ -24,7 +28,7 @@ export default function TopBar({
         {view === 'feed' && (
           <div className="filter-wrap">
             <button
-              className={`btn-ghost ${minScore != null ? 'btn-ghost-active' : ''}`}
+              className={`btn-ghost ${minScore != null || hideAnnouncements ? 'btn-ghost-active' : ''}`}
               onClick={() => setShowFilter((v) => !v)}
             >
               Filter{minScore != null ? ` ≥ ${minScore}` : ''}
@@ -48,6 +52,14 @@ export default function TopBar({
                   Score is upvotes minus downvotes, so 0 hides blogs with more downvotes than
                   upvotes.
                 </p>
+                <label className="filter-check">
+                  <input
+                    type="checkbox"
+                    checked={hideAnnouncements}
+                    onChange={(e) => onHideAnnouncementsChange(e.target.checked)}
+                  />
+                  Hide announcement blogs
+                </label>
                 <button className="btn-link" onClick={() => onMinScoreChange(null)}>
                   Clear filter
                 </button>
@@ -55,6 +67,13 @@ export default function TopBar({
             )}
           </div>
         )}
+        <button
+          className="btn-ghost"
+          onClick={onThemeToggle}
+          aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+        >
+          {theme === 'dark' ? '☀️' : '🌙'}
+        </button>
         <button
           className={`btn-ghost ${view === 'saved' ? 'btn-ghost-active' : ''}`}
           onClick={() => onViewChange(view === 'saved' ? 'feed' : 'saved')}

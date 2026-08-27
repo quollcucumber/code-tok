@@ -14,6 +14,8 @@ import ProfileModal from './components/ProfileModal'
 import './App.css'
 
 const FILTER_KEY = 'codetok-min-score'
+const THEME_KEY = 'codetok-theme'
+const ANNOUNCEMENTS_KEY = 'codetok-hide-announcements'
 
 function readMinScore() {
   const raw = localStorage.getItem(FILTER_KEY)
@@ -29,6 +31,10 @@ function Main() {
   const [chatFriend, setChatFriend] = useState(null)
   const [view, setView] = useState('feed')
   const [minScore, setMinScore] = useState(readMinScore)
+  const [theme, setTheme] = useState(() => localStorage.getItem(THEME_KEY) || 'dark')
+  const [hideAnnouncements, setHideAnnouncements] = useState(
+    () => localStorage.getItem(ANNOUNCEMENTS_KEY) === '1'
+  )
   const reactions = useReactions()
   const friendsApi = useFriends()
   const { profile, saveProfile } = useProfile()
@@ -42,6 +48,15 @@ function Main() {
     else localStorage.setItem(FILTER_KEY, String(minScore))
   }, [minScore])
 
+  useEffect(() => {
+    document.body.dataset.theme = theme
+    localStorage.setItem(THEME_KEY, theme)
+  }, [theme])
+
+  useEffect(() => {
+    localStorage.setItem(ANNOUNCEMENTS_KEY, hideAnnouncements ? '1' : '0')
+  }, [hideAnnouncements])
+
   return (
     <div className="app">
       <TopBar
@@ -54,12 +69,17 @@ function Main() {
         onViewChange={setView}
         minScore={minScore}
         onMinScoreChange={setMinScore}
+        theme={theme}
+        onThemeToggle={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
+        hideAnnouncements={hideAnnouncements}
+        onHideAnnouncementsChange={setHideAnnouncements}
       />
       {view === 'feed' ? (
         <Feed
           reactions={reactions}
           friends={friendsApi.friends}
           minScore={minScore}
+          hideAnnouncements={hideAnnouncements}
           onSignIn={() => setShowAuth(true)}
         />
       ) : (

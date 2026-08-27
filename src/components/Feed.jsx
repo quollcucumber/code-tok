@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { fetchOlderBlogEntries, fetchRecentBlogEntries, fetchUsers } from '../lib/codeforces'
+import { fetchOlderBlogEntries, fetchRecentBlogEntries, fetchUsers, isAnnouncement } from '../lib/codeforces'
 import { useSeen } from '../hooks/useSeen'
 import BlogCard from './BlogCard'
 import CommentsPanel from './CommentsPanel'
@@ -7,7 +7,7 @@ import CommentsPanel from './CommentsPanel'
 const LOAD_BATCH = 8
 const LOAD_AHEAD = 10
 
-export default function Feed({ reactions, friends, minScore, onSignIn }) {
+export default function Feed({ reactions, friends, minScore, hideAnnouncements, onSignIn }) {
   const [entries, setEntries] = useState([])
   const [authors, setAuthors] = useState({})
   const [activeIndex, setActiveIndex] = useState(0)
@@ -22,8 +22,13 @@ export default function Feed({ reactions, friends, minScore, onSignIn }) {
   const { likes, saves, error, clearError, toggleLike, toggleSave } = reactions
 
   const visible = useMemo(
-    () => (minScore == null ? entries : entries.filter((e) => e.rating >= minScore)),
-    [entries, minScore]
+    () =>
+      entries.filter(
+        (e) =>
+          (minScore == null || e.rating >= minScore) &&
+          (!hideAnnouncements || !isAnnouncement(e))
+      ),
+    [entries, minScore, hideAnnouncements]
   )
 
   const addEntries = useCallback(async (list) => {

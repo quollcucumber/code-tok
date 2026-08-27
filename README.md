@@ -11,6 +11,8 @@ Scroll Codeforces blogs like reels. A TikTok-style vertical feed of recent Codef
 - **Likes & saves** — stored per-user in Firestore when signed in, in localStorage otherwise
 - **Saved view** — browse everything you've bookmarked from the ⭐ Saved tab
 - **Score filter** — hide blogs whose Codeforces score (upvotes − downvotes) is below a threshold you pick
+- **Announcement filter** — a checkbox in the Filter menu hides contest announcement blogs
+- **Light mode** — toggle between dark and light themes from the top bar (remembered per browser)
 - **Comments** — per-blog comment threads stored in Firestore (sign in to post)
 - **LaTeX math** — Codeforces' `$$$...$$$` formulas are rendered with KaTeX
 - **Infinite feed** — when the recent blogs run out, older blogs keep loading as you scroll
