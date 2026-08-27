@@ -80,6 +80,13 @@ export default function TopBar({
         >
           {view === 'saved' ? 'Feed' : '⭐ Saved'}
         </button>
+        <button
+          className={`btn-ghost ${view === 'board' ? 'btn-ghost-active' : ''}`}
+          onClick={() => onViewChange(view === 'board' ? 'feed' : 'board')}
+          aria-label="Leaderboard"
+        >
+          {view === 'board' ? 'Feed' : '🏆'}
+        </button>
         {user ? (
           <div className="topbar-user">
             <button className="btn-ghost topbar-friends" onClick={onFriendsClick}>

@@ -7,6 +7,7 @@ import { useChatAlerts } from './hooks/useChatAlerts'
 import TopBar from './components/TopBar'
 import Feed from './components/Feed'
 import SavedList from './components/SavedList'
+import Leaderboard from './components/Leaderboard'
 import AuthModal from './components/AuthModal'
 import FriendsPanel from './components/FriendsPanel'
 import ChatPanel from './components/ChatPanel'
@@ -82,13 +83,15 @@ function Main() {
           hideAnnouncements={hideAnnouncements}
           onSignIn={() => setShowAuth(true)}
         />
-      ) : (
+      ) : view === 'saved' ? (
         <SavedList
           reactions={reactions}
           friends={friendsApi.friends}
           onSignIn={() => setShowAuth(true)}
           onBrowse={() => setView('feed')}
         />
+      ) : (
+        <Leaderboard onSignIn={() => setShowAuth(true)} />
       )}
       {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
       {showProfile && (

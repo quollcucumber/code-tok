@@ -68,7 +68,10 @@ export default function BlogCard({
             </div>
           </a>
         </header>
-        <h2 className="card-title">{entry.title}</h2>
+        <h2 className="card-title">
+          {entry.title}
+          {entry.rewatch && <span className="rewatch-badge">Seen before</span>}
+        </h2>
         {friendLikers.length > 0 && (
           <div className="friend-likes">
             {friendLikers.slice(0, 3).map((f) =>
