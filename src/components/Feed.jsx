@@ -54,7 +54,8 @@ export default function Feed({ reactions, friends, minScore, hideAnnouncements, 
       nextBeforeIdRef.current = nextBeforeId > 0 ? nextBeforeId : null
       await addEntries(older)
     } catch {
-      // transient API failure; the next scroll retries
+      // transient API failure; pause briefly so the retry loop doesn't spin
+      await new Promise((r) => setTimeout(r, 2000))
     } finally {
       loadingMoreRef.current = false
       setLoadingMore(false)
@@ -89,9 +90,9 @@ export default function Feed({ reactions, friends, minScore, hideAnnouncements, 
   }, [seenLoaded, addEntries, isSeen])
 
   useEffect(() => {
-    if (status !== 'ready') return
+    if (status !== 'ready' || loadingMore) return
     if (visible.length - activeIndex <= LOAD_AHEAD) loadMore()
-  }, [status, activeIndex, visible.length, loadMore])
+  }, [status, activeIndex, visible.length, loadingMore, loadMore])
 
   useEffect(() => {
     if (status !== 'ready') return
