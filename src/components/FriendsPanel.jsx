@@ -10,7 +10,7 @@ function Avatar({ profile }) {
   )
 }
 
-export default function FriendsPanel({ friendsApi, onOpenChat, onClose }) {
+export default function FriendsPanel({ friendsApi, unreadUids, onOpenChat, onClose }) {
   const { friends, incoming, outgoing, error, sendRequest, accept, remove } = friendsApi
   const [search, setSearch] = useState('')
   const [notice, setNotice] = useState('')
@@ -94,7 +94,10 @@ export default function FriendsPanel({ friendsApi, onOpenChat, onClose }) {
               friends.map((f) => (
                 <div className="friend-row" key={f.uid}>
                   <Avatar profile={f.profile} />
-                  <span className="friend-name">{f.profile?.name || '…'}</span>
+                  <span className="friend-name">
+                    {f.profile?.name || '…'}
+                    {unreadUids.has(f.uid) && <span className="unread-dot" />}
+                  </span>
                   <button className="btn-primary friend-action" onClick={() => onOpenChat(f)}>
                     Message
                   </button>

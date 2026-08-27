@@ -3,6 +3,7 @@ import { AuthProvider } from './hooks/useAuth'
 import { useReactions } from './hooks/useReactions'
 import { useFriends } from './hooks/useFriends'
 import { useProfile } from './hooks/useProfile'
+import { useChatAlerts } from './hooks/useChatAlerts'
 import TopBar from './components/TopBar'
 import Feed from './components/Feed'
 import SavedList from './components/SavedList'
@@ -31,6 +32,10 @@ function Main() {
   const reactions = useReactions()
   const friendsApi = useFriends()
   const { profile, saveProfile } = useProfile()
+  const { toast, dismissToast, unreadUids } = useChatAlerts(
+    friendsApi.friends,
+    chatFriend?.uid ?? null
+  )
 
   useEffect(() => {
     if (minScore == null) localStorage.removeItem(FILTER_KEY)
@@ -44,7 +49,7 @@ function Main() {
         onProfileClick={() => setShowProfile(true)}
         onFriendsClick={() => setShowFriends(true)}
         profile={profile}
-        friendRequestCount={friendsApi.incoming.length}
+        friendRequestCount={friendsApi.incoming.length + unreadUids.size}
         view={view}
         onViewChange={setView}
         minScore={minScore}
@@ -75,9 +80,32 @@ function Main() {
       {showFriends && !chatFriend && (
         <FriendsPanel
           friendsApi={friendsApi}
+          unreadUids={unreadUids}
           onOpenChat={(f) => setChatFriend(f)}
           onClose={() => setShowFriends(false)}
         />
+      )}
+      {toast && (
+        <button
+          className="msg-toast"
+          onClick={() => {
+            setChatFriend(toast.friend)
+            setShowFriends(true)
+            dismissToast()
+          }}
+        >
+          {toast.friend.profile?.photo ? (
+            <img className="avatar avatar-sm" src={toast.friend.profile.photo} alt="" />
+          ) : (
+            <div className="avatar avatar-sm avatar-fallback">
+              {(toast.friend.profile?.name || '?')[0].toUpperCase()}
+            </div>
+          )}
+          <span className="msg-toast-body">
+            <strong>{toast.friend.profile?.name || 'New message'}</strong>
+            <span className="msg-toast-text">{toast.text}</span>
+          </span>
+        </button>
       )}
       {chatFriend && (
         <ChatPanel
