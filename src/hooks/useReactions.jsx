@@ -19,6 +19,7 @@ export function useReactions() {
   const { user, configured } = useAuth()
   const [likes, setLikes] = useState({})
   const [saves, setSaves] = useState({})
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     if (!configured || !user) {
@@ -31,13 +32,17 @@ export function useReactions() {
       ['likes', setLikes],
       ['saves', setSaves],
     ].map(([name, setter]) =>
-      onSnapshot(collection(db, 'users', user.uid, name), (snap) => {
-        const next = {}
-        snap.forEach((d) => {
-          next[d.id] = d.data()
-        })
-        setter(next)
-      })
+      onSnapshot(
+        collection(db, 'users', user.uid, name),
+        (snap) => {
+          const next = {}
+          snap.forEach((d) => {
+            next[d.id] = d.data()
+          })
+          setter(next)
+        },
+        (err) => setError(`Couldn't sync your ${name}: ${err.message}`)
+      )
     )
     return () => unsubs.forEach((u) => u())
   }, [configured, user])
@@ -48,8 +53,12 @@ export function useReactions() {
       const has = Boolean(current[blogId])
       if (configured && user) {
         const ref = doc(db, 'users', user.uid, name, blogId)
-        if (has) await deleteDoc(ref)
-        else await setDoc(ref, { title: entry.title, authorHandle: entry.authorHandle, url: entry.url, createdAt: serverTimestamp() })
+        try {
+          if (has) await deleteDoc(ref)
+          else await setDoc(ref, { title: entry.title, authorHandle: entry.authorHandle, url: entry.url, createdAt: serverTimestamp() })
+        } catch (err) {
+          setError(`Couldn't save that: ${err.message}`)
+        }
       } else {
         const local = readLocal()
         if (has) delete local[name][blogId]
@@ -64,6 +73,8 @@ export function useReactions() {
   return {
     likes,
     saves,
+    error,
+    clearError: () => setError(null),
     toggleLike: (entry) => toggle('likes', entry, likes, setLikes),
     toggleSave: (entry) => toggle('saves', entry, saves, setSaves),
   }

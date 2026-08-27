@@ -9,7 +9,7 @@ export default function Feed() {
   const [activeIndex, setActiveIndex] = useState(0)
   const [status, setStatus] = useState('loading')
   const containerRef = useRef(null)
-  const { likes, saves, toggleLike, toggleSave } = useReactions()
+  const { likes, saves, error, clearError, toggleLike, toggleSave } = useReactions()
 
   useEffect(() => {
     let cancelled = false
@@ -43,6 +43,7 @@ export default function Feed() {
       { root: container, threshold: 0.6 }
     )
     for (const el of container.querySelectorAll('.card')) observer.observe(el)
+    container.focus()
     return () => observer.disconnect()
   }, [entries])
 
@@ -57,7 +58,15 @@ export default function Feed() {
   }
 
   return (
-    <div className="feed" ref={containerRef}>
+    <div className="feed" ref={containerRef} tabIndex={-1}>
+      {error && (
+        <div className="toast" role="alert">
+          <span>{error}</span>
+          <button className="toast-close" onClick={clearError} aria-label="Dismiss">
+            ✕
+          </button>
+        </div>
+      )}
       {entries.map((entry, i) => (
         <div className="card" key={entry.id} data-index={i}>
           <BlogCard
