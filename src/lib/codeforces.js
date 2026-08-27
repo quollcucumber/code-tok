@@ -4,17 +4,45 @@ const API_BASE = 'https://codeforces.com/api'
 let queue = Promise.resolve()
 const CALL_GAP_MS = 250
 
+async function fetchJson(url) {
+  const res = await fetch(url)
+  const json = await res.json()
+  if (json.status !== 'OK') throw new Error(json.comment || 'Codeforces API error')
+  return json.result
+}
+
 function throttledFetch(url) {
-  const result = queue.then(async () => {
-    const res = await fetch(url)
-    const json = await res.json()
-    if (json.status !== 'OK') throw new Error(json.comment || 'Codeforces API error')
-    return json.result
-  })
+  const result = queue.then(() => fetchJson(url))
   queue = result
     .catch(() => {})
     .then(() => new Promise((r) => setTimeout(r, CALL_GAP_MS)))
   return result
+}
+
+// IDs that turned out to be deleted/inaccessible blogs are remembered across
+// visits so the discovery crawl never wastes API calls re-checking them.
+const DEAD_KEY = 'codetok-dead-ids'
+const DEAD_LIMIT = 20000
+let deadIdsSet = null
+
+function deadIds() {
+  if (!deadIdsSet) {
+    try {
+      const list = JSON.parse(localStorage.getItem(DEAD_KEY))
+      deadIdsSet = new Set(Array.isArray(list) ? list : [])
+    } catch {
+      deadIdsSet = new Set()
+    }
+  }
+  return deadIdsSet
+}
+
+function saveDeadIds() {
+  try {
+    localStorage.setItem(DEAD_KEY, JSON.stringify([...deadIds()].slice(-DEAD_LIMIT)))
+  } catch {
+    // localStorage full or unavailable; the cache is best-effort
+  }
 }
 
 function stripTags(html) {
@@ -50,27 +78,52 @@ export async function fetchRecentBlogEntries(maxCount = 100) {
   return entries
 }
 
+const DISCOVERY_BATCH = 5
+
+async function tryFetchEntry(id) {
+  try {
+    return await fetchJson(`${API_BASE}/blogEntry.view?blogEntryId=${id}`)
+  } catch (err) {
+    if (/not found/i.test(err.message)) {
+      // Deleted/draft blog — remember so it's never checked again.
+      deadIds().add(id)
+      return null
+    }
+    // Rate limit or network hiccup, not a missing blog — back off, retry once.
+    await new Promise((r) => setTimeout(r, 1500))
+    try {
+      return await fetchJson(`${API_BASE}/blogEntry.view?blogEntryId=${id}`)
+    } catch {
+      return null
+    }
+  }
+}
+
 // Blog entry ids are roughly sequential, so older blogs can be discovered by
-// walking ids downward. Missing ids (deleted/draft blogs) are skipped.
+// walking ids downward. Missing ids (deleted/draft blogs) are skipped and
+// remembered; candidates are fetched in small parallel batches for speed.
 export async function fetchOlderBlogEntries(beforeId, count, shouldSkip) {
+  const dead = deadIds()
   const entries = []
   let id = beforeId - 1
   let attempts = 0
   const maxAttempts = count * 8
   while (entries.length < count && id > 0 && attempts < maxAttempts) {
-    if (shouldSkip(id)) {
+    const batch = []
+    while (batch.length < DISCOVERY_BATCH && id > 0) {
+      if (!dead.has(id) && !shouldSkip(id)) batch.push(id)
       id--
-      continue
     }
-    attempts++
-    try {
-      const entry = await throttledFetch(`${API_BASE}/blogEntry.view?blogEntryId=${id}`)
+    if (batch.length === 0) break
+    attempts += batch.length
+    const results = await Promise.all(batch.map(tryFetchEntry))
+    saveDeadIds()
+    for (const entry of results) {
+      if (!entry) continue
       contentCache.set(entry.id, Promise.resolve(entry.content))
       entries.push(mapEntry(entry))
-    } catch {
-      // deleted or inaccessible blog; keep walking
     }
-    id--
+    await new Promise((r) => setTimeout(r, CALL_GAP_MS))
   }
   return { entries, nextBeforeId: id + 1 }
 }
