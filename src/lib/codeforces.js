@@ -28,7 +28,7 @@ const contentCache = new Map()
 function mapEntry(entry) {
   return {
     id: entry.id,
-    title: stripTags(entry.title).trim(),
+    title: stripTags(entry.title).replace(/\${3}/g, '').trim(),
     authorHandle: entry.authorHandle,
     rating: entry.rating,
     creationTimeSeconds: entry.creationTimeSeconds,
