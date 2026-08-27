@@ -110,6 +110,15 @@ export async function fetchUsers(handles) {
   return result
 }
 
+// Heuristic: contest announcements are usually tagged "announcement" or titled
+// like "Codeforces Round 1118 (Div. 2)" — but editorials/tutorials are kept.
+export function isAnnouncement(entry) {
+  const title = entry.title.toLowerCase()
+  if (title.includes('editorial') || title.includes('tutorial')) return false
+  if (entry.tags.some((t) => t.toLowerCase().includes('announcement'))) return true
+  return title.includes('announcement') || /\b(round|contest)\b[^a-z]*\d/.test(title)
+}
+
 export function ratingColor(rating) {
   if (rating == null) return '#888888'
   if (rating >= 3000) return '#ff0000'
