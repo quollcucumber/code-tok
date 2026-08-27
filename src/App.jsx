@@ -84,8 +84,9 @@ function Main() {
         />
       ) : (
         <SavedList
-          saves={reactions.saves}
-          toggleSave={reactions.toggleSave}
+          reactions={reactions}
+          friends={friendsApi.friends}
+          onSignIn={() => setShowAuth(true)}
           onBrowse={() => setView('feed')}
         />
       )}

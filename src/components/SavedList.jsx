@@ -1,12 +1,23 @@
 import { useState } from 'react'
 import SavedBlogView from './SavedBlogView'
 
-export default function SavedList({ saves, toggleSave, onBrowse }) {
+export default function SavedList({ reactions, friends, onSignIn, onBrowse }) {
   const [openId, setOpenId] = useState(null)
+  const { saves, likes, toggleSave, toggleLike } = reactions
   const items = Object.entries(saves)
 
   if (openId != null && saves[openId]) {
-    return <SavedBlogView blogId={openId} item={saves[openId]} onBack={() => setOpenId(null)} />
+    return (
+      <SavedBlogView
+        blogId={openId}
+        item={saves[openId]}
+        friends={friends}
+        liked={Boolean(likes[openId])}
+        onLike={toggleLike}
+        onSignIn={onSignIn}
+        onBack={() => setOpenId(null)}
+      />
+    )
   }
 
   return (
