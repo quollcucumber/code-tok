@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import DOMPurify from 'dompurify'
 import { fetchBlogContent, ratingColor, timeAgo } from '../lib/codeforces'
 
-export default function BlogCard({ entry, author, active, liked, saved, onLike, onSave }) {
+export default function BlogCard({ entry, author, active, liked, saved, onLike, onSave, onComments }) {
   const [content, setContent] = useState(null)
   const [error, setError] = useState(false)
 
@@ -82,8 +82,12 @@ export default function BlogCard({ entry, author, active, liked, saved, onLike, 
           <span className="rail-icon">{saved ? '⭐' : '☆'}</span>
           <span className="rail-label">{saved ? 'Saved' : 'Save'}</span>
         </button>
-        <a className="rail-btn" href={entry.url} target="_blank" rel="noreferrer" aria-label="Open on Codeforces">
+        <button className="rail-btn" onClick={onComments} aria-label="Comments">
           <span className="rail-icon">💬</span>
+          <span className="rail-label">Chat</span>
+        </button>
+        <a className="rail-btn" href={entry.url} target="_blank" rel="noreferrer" aria-label="Open on Codeforces">
+          <span className="rail-icon">↗️</span>
           <span className="rail-label">Open</span>
         </a>
       </aside>

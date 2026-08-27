@@ -9,6 +9,9 @@ Scroll Codeforces blogs like reels. A TikTok-style vertical feed of recent Codef
 - **Author info** — handle colored by rating, rank, and avatar
 - **Accounts** — email/password and Google sign-in via Firebase Auth
 - **Likes & saves** — stored per-user in Firestore when signed in, in localStorage otherwise
+- **Saved view** — browse everything you've bookmarked from the ⭐ Saved tab
+- **Score filter** — hide blogs whose Codeforces score (upvotes − downvotes) is below a threshold you pick
+- **Comments** — per-blog comment threads stored in Firestore (sign in to post)
 
 ## Getting started
 
@@ -32,6 +35,15 @@ The feed works immediately with no configuration (likes/saves fall back to local
      match /databases/{database}/documents {
        match /users/{uid}/{collection}/{docId} {
          allow read, write: if request.auth != null && request.auth.uid == uid;
+       }
+       match /blogs/{blogId}/comments/{commentId} {
+         allow read: if true;
+         allow create: if request.auth != null
+           && request.resource.data.uid == request.auth.uid
+           && request.resource.data.text is string
+           && request.resource.data.text.size() > 0
+           && request.resource.data.text.size() <= 2000;
+         allow delete: if request.auth != null && request.auth.uid == resource.data.uid;
        }
      }
    }
