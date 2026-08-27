@@ -1,15 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
-import DOMPurify from 'dompurify'
-import renderMathInElement from 'katex/contrib/auto-render'
-import 'katex/dist/katex.min.css'
+import { useEffect, useState } from 'react'
 import { fetchBlogContent, ratingColor, timeAgo } from '../lib/codeforces'
+import { prepareBlogHtml } from '../lib/blogHtml'
 import { useFriendLikes } from '../hooks/useFriends'
-
-// Codeforces blogs embed LaTeX with $$$...$$$ (inline) and $$$$$$...$$$$$$ (display).
-const MATH_DELIMITERS = [
-  { left: '$$$$$$', right: '$$$$$$', display: true },
-  { left: '$$$', right: '$$$', display: false },
-]
 
 function friendLikeText(likers) {
   const names = likers.map((f) => f.profile?.name || 'a friend')
@@ -31,14 +23,13 @@ export default function BlogCard({
 }) {
   const [content, setContent] = useState(null)
   const [error, setError] = useState(false)
-  const htmlRef = useRef(null)
 
   useEffect(() => {
     if (!active || content) return
     let cancelled = false
     fetchBlogContent(entry.id)
       .then((html) => {
-        if (!cancelled) setContent(DOMPurify.sanitize(html))
+        if (!cancelled) setContent(prepareBlogHtml(html))
       })
       .catch(() => {
         if (!cancelled) setError(true)
@@ -47,14 +38,6 @@ export default function BlogCard({
       cancelled = true
     }
   }, [active, content, entry.id])
-
-  useEffect(() => {
-    if (content == null || !htmlRef.current) return
-    renderMathInElement(htmlRef.current, {
-      delimiters: MATH_DELIMITERS,
-      throwOnError: false,
-    })
-  }, [content])
 
   const color = ratingColor(author?.rating)
   const friendLikers = useFriendLikes(entry.id, friends, active)
@@ -102,7 +85,7 @@ export default function BlogCard({
         )}
         <div className="card-content">
           {content != null ? (
-            <div className="blog-html" ref={htmlRef} dangerouslySetInnerHTML={{ __html: content }} />
+            <div className="blog-html" dangerouslySetInnerHTML={{ __html: content }} />
           ) : error ? (
             <p className="content-note">
               Couldn't load this blog.{' '}
