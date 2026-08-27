@@ -1,7 +1,17 @@
 import { useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 
-export default function TopBar({ onSignInClick, view, onViewChange, minScore, onMinScoreChange }) {
+export default function TopBar({
+  onSignInClick,
+  onProfileClick,
+  onFriendsClick,
+  profile,
+  friendRequestCount,
+  view,
+  onViewChange,
+  minScore,
+  onMinScoreChange,
+}) {
   const { user, logOut } = useAuth()
   const [showFilter, setShowFilter] = useState(false)
 
@@ -53,7 +63,22 @@ export default function TopBar({ onSignInClick, view, onViewChange, minScore, on
         </button>
         {user ? (
           <div className="topbar-user">
-            <span className="topbar-name">{user.displayName || user.email}</span>
+            <button className="btn-ghost topbar-friends" onClick={onFriendsClick}>
+              👥 Friends
+              {friendRequestCount > 0 && (
+                <span className="badge">{friendRequestCount}</span>
+              )}
+            </button>
+            <button className="topbar-profile" onClick={onProfileClick} aria-label="Edit profile">
+              {profile?.photo ? (
+                <img className="avatar avatar-sm" src={profile.photo} alt="" />
+              ) : (
+                <div className="avatar avatar-sm avatar-fallback">
+                  {(profile?.name || user.displayName || user.email || '?')[0].toUpperCase()}
+                </div>
+              )}
+              <span className="topbar-name">{profile?.name || user.displayName || user.email}</span>
+            </button>
             <button className="btn-ghost" onClick={logOut}>
               Sign out
             </button>

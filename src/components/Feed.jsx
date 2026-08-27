@@ -7,7 +7,7 @@ import CommentsPanel from './CommentsPanel'
 const LOAD_BATCH = 6
 const LOAD_AHEAD = 4
 
-export default function Feed({ reactions, minScore, onSignIn }) {
+export default function Feed({ reactions, friends, minScore, onSignIn }) {
   const [entries, setEntries] = useState([])
   const [authors, setAuthors] = useState({})
   const [activeIndex, setActiveIndex] = useState(0)
@@ -145,6 +145,7 @@ export default function Feed({ reactions, minScore, onSignIn }) {
           <BlogCard
             entry={entry}
             author={authors[entry.authorHandle]}
+            friends={friends}
             active={Math.abs(i - activeIndex) <= 1}
             liked={Boolean(likes[entry.id])}
             saved={Boolean(saves[entry.id])}

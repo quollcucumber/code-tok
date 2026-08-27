@@ -604,6 +604,162 @@
   margin-top: 12px;
 }
 
+/* Friends, chat, profile */
+.avatar-sm {
+  width: 28px;
+  height: 28px;
+  font-size: 13px;
+}
+
+.avatar-xs {
+  width: 20px;
+  height: 20px;
+  font-size: 10px;
+  margin-right: -6px;
+}
+
+.avatar-lg {
+  width: 72px;
+  height: 72px;
+  font-size: 30px;
+}
+
+.topbar-friends {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.badge {
+  background: #fe2c55;
+  color: #fff;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 6px;
+}
+
+.topbar-profile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+}
+
+.profile-photo-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.profile-photo-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.profile-upload {
+  display: inline-block;
+}
+
+.friends-search {
+  border-top: none;
+  padding-top: 0;
+  margin-bottom: 10px;
+}
+
+.friends-notice {
+  margin: 0 0 8px;
+  color: #4ade80;
+  font-size: 13px;
+}
+
+.friends-list {
+  gap: 18px;
+}
+
+.friends-section-title {
+  margin: 0 0 8px;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #8a8a99;
+}
+
+.friend-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+}
+
+.friend-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+}
+
+.friend-action {
+  padding: 5px 12px;
+  font-size: 13px;
+}
+
+.chat-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.chat-list {
+  padding-top: 12px;
+}
+
+.chat-msg {
+  max-width: 80%;
+  align-self: flex-start;
+  background: #23232f;
+  border-radius: 14px 14px 14px 4px;
+  padding: 8px 12px;
+}
+
+.chat-msg-mine {
+  align-self: flex-end;
+  background: #fe2c55;
+  border-radius: 14px 14px 4px 14px;
+}
+
+.chat-msg-text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.chat-msg-mine .subtext {
+  color: #ffd4dd;
+}
+
+.friend-likes {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: -4px 0 10px;
+}
+
+.friend-likes-text {
+  font-size: 13px;
+  color: #ffb3c1;
+}
+
 @media (max-width: 560px) {
   .card {
     padding: 56px 6px 10px;
