@@ -1,5 +1,13 @@
+import { useState } from 'react'
+import SavedBlogView from './SavedBlogView'
+
 export default function SavedList({ saves, toggleSave, onBrowse }) {
+  const [openId, setOpenId] = useState(null)
   const items = Object.entries(saves)
+
+  if (openId != null && saves[openId]) {
+    return <SavedBlogView blogId={openId} item={saves[openId]} onBack={() => setOpenId(null)} />
+  }
 
   return (
     <div className="saved-view">
@@ -16,9 +24,9 @@ export default function SavedList({ saves, toggleSave, onBrowse }) {
           {items.map(([blogId, item]) => (
             <li className="saved-item" key={blogId}>
               <div className="saved-item-main">
-                <a href={item.url} target="_blank" rel="noreferrer" className="saved-item-title">
+                <button className="saved-item-title" onClick={() => setOpenId(blogId)}>
                   {item.title}
-                </a>
+                </button>
                 <span className="subtext">by {item.authorHandle}</span>
               </div>
               <button
