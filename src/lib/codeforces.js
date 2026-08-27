@@ -2,7 +2,7 @@ const API_BASE = 'https://codeforces.com/api'
 
 // Codeforces limits anonymous API usage; keep calls sequential and spaced out.
 let queue = Promise.resolve()
-const CALL_GAP_MS = 400
+const CALL_GAP_MS = 250
 
 function throttledFetch(url) {
   const result = queue.then(async () => {

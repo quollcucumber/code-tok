@@ -4,8 +4,8 @@ import { useSeen } from '../hooks/useSeen'
 import BlogCard from './BlogCard'
 import CommentsPanel from './CommentsPanel'
 
-const LOAD_BATCH = 6
-const LOAD_AHEAD = 4
+const LOAD_BATCH = 8
+const LOAD_AHEAD = 10
 
 export default function Feed({ reactions, friends, minScore, onSignIn }) {
   const [entries, setEntries] = useState([])
