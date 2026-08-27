@@ -1,3 +1,5 @@
+import { fetchIndexedOlderEntries, indexMaxId } from './blogIndex'
+
 const API_BASE = 'https://codeforces.com/api'
 
 // Codeforces limits anonymous API usage; keep calls sequential and spaced out.
@@ -101,16 +103,16 @@ async function tryFetchEntry(id) {
 
 // Blog entry ids are roughly sequential, so older blogs can be discovered by
 // walking ids downward. Missing ids (deleted/draft blogs) are skipped and
-// remembered; candidates are fetched in small parallel batches for speed.
-export async function fetchOlderBlogEntries(beforeId, count, shouldSkip) {
+// remembered; candidates are fetched in small parallel batches.
+async function crawlOlderBlogEntries(beforeId, count, shouldSkip, stopAt) {
   const dead = deadIds()
   const entries = []
   let id = beforeId - 1
   let attempts = 0
   const maxAttempts = count * 8
-  while (entries.length < count && id > 0 && attempts < maxAttempts) {
+  while (entries.length < count && id >= stopAt && attempts < maxAttempts) {
     const batch = []
-    while (batch.length < DISCOVERY_BATCH && id > 0) {
+    while (batch.length < DISCOVERY_BATCH && id >= stopAt) {
       if (!dead.has(id) && !shouldSkip(id)) batch.push(id)
       id--
     }
@@ -126,6 +128,32 @@ export async function fetchOlderBlogEntries(beforeId, count, shouldSkip) {
     await new Promise((r) => setTimeout(r, CALL_GAP_MS))
   }
   return { entries, nextBeforeId: id + 1 }
+}
+
+// Older blogs come from the pre-crawled static index when available (instant,
+// no API calls); the live API crawl only covers blogs newer than the index.
+export async function fetchOlderBlogEntries(beforeId, count, shouldSkip) {
+  const maxIndexed = await indexMaxId()
+  if (maxIndexed != null && beforeId - 1 <= maxIndexed) {
+    const indexed = await fetchIndexedOlderEntries(beforeId, count, shouldSkip)
+    if (indexed) return indexed
+  }
+  const stopAt = maxIndexed != null ? maxIndexed + 1 : 1
+  const live = await crawlOlderBlogEntries(beforeId, count, shouldSkip, stopAt)
+  if (maxIndexed != null && live.entries.length < count && live.nextBeforeId <= maxIndexed + 1) {
+    const indexed = await fetchIndexedOlderEntries(
+      live.nextBeforeId,
+      count - live.entries.length,
+      shouldSkip
+    )
+    if (indexed) {
+      return {
+        entries: [...live.entries, ...indexed.entries],
+        nextBeforeId: indexed.nextBeforeId,
+      }
+    }
+  }
+  return live
 }
 
 export function fetchBlogContent(blogEntryId) {
