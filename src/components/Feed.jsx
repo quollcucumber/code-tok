@@ -16,6 +16,7 @@ export default function Feed({ reactions, friends, minScore, hideAnnouncements, 
   const [commentsFor, setCommentsFor] = useState(null)
   const containerRef = useRef(null)
   const knownIdsRef = useRef(new Set())
+  const rewatchPoolRef = useRef([])
   const nextBeforeIdRef = useRef(null)
   const loadingMoreRef = useRef(false)
   const { isSeen, markSeen, loaded: seenLoaded } = useSeen()
@@ -71,6 +72,11 @@ export default function Feed({ reactions, friends, minScore, hideAnnouncements, 
           return
         }
         nextBeforeIdRef.current = Math.max(...list.map((e) => e.id)) + 1
+        // Already-seen blogs are kept as a rewatch pool so the feed has
+        // something to show while unseen blogs load slowly from the API.
+        rewatchPoolRef.current = list
+          .filter((e) => isSeen(e.id))
+          .map((e) => ({ ...e, rewatch: true }))
         setStatus('ready')
         await addEntries(list.filter((e) => !isSeen(e.id)))
       })
@@ -86,6 +92,13 @@ export default function Feed({ reactions, friends, minScore, hideAnnouncements, 
     if (status !== 'ready') return
     if (visible.length - activeIndex <= LOAD_AHEAD) loadMore()
   }, [status, activeIndex, visible.length, loadMore])
+
+  useEffect(() => {
+    if (status !== 'ready') return
+    if (visible.length - activeIndex <= 2 && rewatchPoolRef.current.length > 0) {
+      addEntries(rewatchPoolRef.current.splice(0, 3))
+    }
+  }, [status, activeIndex, visible.length, addEntries])
 
   useEffect(() => {
     const entry = visible[activeIndex]

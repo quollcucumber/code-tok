@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { collection, doc, getDocs, serverTimestamp, setDoc } from 'firebase/firestore'
+import { collection, doc, getDocs, increment, serverTimestamp, setDoc } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { useAuth } from './useAuth'
 
@@ -36,6 +36,13 @@ export function useSeen() {
       .then((snap) => {
         if (cancelled) return
         snap.forEach((d) => seenRef.current.add(d.id))
+        // Sync the public read counter (used by the leaderboard) so it
+        // reflects history from before the counter existed.
+        setDoc(
+          doc(db, 'profiles', user.uid),
+          { seenCount: seenRef.current.size },
+          { merge: true }
+        ).catch(() => {})
       })
       .catch(() => {
         // seen history is best-effort; the feed still works without it
@@ -58,6 +65,9 @@ export function useSeen() {
       localStorage.setItem(SEEN_KEY, JSON.stringify(list.slice(-LOCAL_LIMIT)))
       if (configured && user) {
         setDoc(doc(db, 'users', user.uid, 'seen', idStr), { seenAt: serverTimestamp() }).catch(
+          () => {}
+        )
+        setDoc(doc(db, 'profiles', user.uid), { seenCount: increment(1) }, { merge: true }).catch(
           () => {}
         )
       }
