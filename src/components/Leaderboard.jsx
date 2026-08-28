@@ -2,12 +2,15 @@ import { useEffect, useState } from 'react'
 import { collection, getDocs, limit, orderBy, query } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { useAuth } from '../hooks/useAuth'
+import { useAdminUids } from '../hooks/useAdmin'
+import AdminBadge from './AdminBadge'
 
 const MEDALS = ['🥇', '🥈', '🥉']
 
 export default function Leaderboard({ onSignIn }) {
   const { user, configured } = useAuth()
   const [rows, setRows] = useState(null)
+  const adminUids = useAdminUids()
   const [error, setError] = useState(false)
 
   useEffect(() => {
@@ -59,6 +62,7 @@ export default function Leaderboard({ onSignIn }) {
               )}
               <span className="board-name">
                 {p.name || 'anonymous'}
+                <AdminBadge show={adminUids.has(p.uid)} />
                 {user && p.uid === user.uid ? ' (you)' : ''}
               </span>
               <span className="board-count">{p.seenCount}</span>

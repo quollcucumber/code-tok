@@ -914,6 +914,12 @@
   align-self: flex-start;
 }
 
+.admin-badge {
+  margin-left: 4px;
+  font-size: 0.85em;
+  cursor: default;
+}
+
 .banned-banner {
   background: #b3123c;
   color: #fff;
