@@ -43,7 +43,8 @@ The feed works immediately with no configuration (likes/saves fall back to local
    service cloud.firestore {
      match /databases/{database}/documents {
        function isAdmin() {
-         return request.auth != null && request.auth.token.email == 'rcodetok@greatcactus.org';
+         return request.auth != null
+          && request.auth.token.email in ['rcodetok@greatcactus.org', 'justinzhu2011@gmail.com'];
        }
        function notBanned() {
          return request.auth != null
