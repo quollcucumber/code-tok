@@ -11,6 +11,10 @@ node_modules
 dist
 dist-ssr
 *.local
+.env
+.firebase
+# generated from data/blogs.jsonl by scripts/build-blog-index.mjs
+public/blog-index
 
 # Editor directories and files
 .vscode/*
