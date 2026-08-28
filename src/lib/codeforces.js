@@ -1,3 +1,5 @@
+import { fetchIndexedOlderEntries, indexRange } from './blogIndex'
+
 const API_BASE = 'https://codeforces.com/api'
 
 // Codeforces limits anonymous API usage; keep calls sequential and spaced out.
@@ -101,16 +103,16 @@ async function tryFetchEntry(id) {
 
 // Blog entry ids are roughly sequential, so older blogs can be discovered by
 // walking ids downward. Missing ids (deleted/draft blogs) are skipped and
-// remembered; candidates are fetched in small parallel batches for speed.
-export async function fetchOlderBlogEntries(beforeId, count, shouldSkip) {
+// remembered; candidates are fetched in small parallel batches.
+async function crawlOlderBlogEntries(beforeId, count, shouldSkip, stopAt) {
   const dead = deadIds()
   const entries = []
   let id = beforeId - 1
   let attempts = 0
   const maxAttempts = count * 8
-  while (entries.length < count && id > 0 && attempts < maxAttempts) {
+  while (entries.length < count && id >= stopAt && attempts < maxAttempts) {
     const batch = []
-    while (batch.length < DISCOVERY_BATCH && id > 0) {
+    while (batch.length < DISCOVERY_BATCH && id >= stopAt) {
       if (!dead.has(id) && !shouldSkip(id)) batch.push(id)
       id--
     }
@@ -126,6 +128,45 @@ export async function fetchOlderBlogEntries(beforeId, count, shouldSkip) {
     await new Promise((r) => setTimeout(r, CALL_GAP_MS))
   }
   return { entries, nextBeforeId: id + 1 }
+}
+
+// Older blogs come from the pre-crawled static index when available (instant,
+// no API calls). The live API crawl covers blogs newer than the index and,
+// for a partially-built index, blogs older than its lowest crawled id.
+export async function fetchOlderBlogEntries(beforeId, count, shouldSkip) {
+  const range = await indexRange()
+  if (!range) return crawlOlderBlogEntries(beforeId, count, shouldSkip, 1)
+
+  const entries = []
+  let cursor = beforeId
+
+  if (cursor - 1 > range.maxId) {
+    const live = await crawlOlderBlogEntries(cursor, count, shouldSkip, range.maxId + 1)
+    entries.push(...live.entries)
+    cursor = live.nextBeforeId
+    if (entries.length >= count || cursor - 1 > range.maxId) {
+      return { entries, nextBeforeId: cursor }
+    }
+  }
+
+  if (cursor - 1 >= range.minId) {
+    const indexed = await fetchIndexedOlderEntries(cursor, count - entries.length, shouldSkip)
+    if (indexed) {
+      entries.push(...indexed.entries)
+      cursor = indexed.nextBeforeId
+    }
+    if (entries.length >= count || cursor <= 0) {
+      return { entries, nextBeforeId: cursor }
+    }
+  }
+
+  const live = await crawlOlderBlogEntries(
+    Math.min(cursor, range.minId),
+    count - entries.length,
+    shouldSkip,
+    1
+  )
+  return { entries: [...entries, ...live.entries], nextBeforeId: live.nextBeforeId }
 }
 
 export function fetchBlogContent(blogEntryId) {
