@@ -10,8 +10,74 @@ function Avatar({ profile }) {
   )
 }
 
-export default function FriendsPanel({ friendsApi, unreadUids, onOpenChat, onClose }) {
+function GroupCreateForm({ friends, createGroup }) {
+  const [name, setName] = useState('')
+  const [picked, setPicked] = useState({})
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+
+  async function submit(e) {
+    e.preventDefault()
+    setBusy(true)
+    setError('')
+    try {
+      await createGroup(
+        name,
+        Object.keys(picked).filter((uid) => picked[uid])
+      )
+      setName('')
+      setPicked({})
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <form className="group-create" onSubmit={submit}>
+      <input
+        placeholder="New group name…"
+        value={name}
+        maxLength={50}
+        onChange={(e) => setName(e.target.value)}
+      />
+      {name.trim() && (
+        <div className="group-picks">
+          {friends.map((f) => (
+            <label className="filter-check" key={f.uid}>
+              <input
+                type="checkbox"
+                checked={Boolean(picked[f.uid])}
+                onChange={(e) => setPicked((prev) => ({ ...prev, [f.uid]: e.target.checked }))}
+              />
+              {f.profile?.name || '…'}
+            </label>
+          ))}
+        </div>
+      )}
+      {error && <p className="auth-error">{error}</p>}
+      <button
+        className="btn-primary"
+        type="submit"
+        disabled={busy || !name.trim() || !Object.values(picked).some(Boolean)}
+      >
+        Create group
+      </button>
+    </form>
+  )
+}
+
+export default function FriendsPanel({
+  friendsApi,
+  groupsApi,
+  unreadUids,
+  onOpenChat,
+  onOpenGroup,
+  onClose,
+}) {
   const { friends, incoming, outgoing, error, sendRequest, accept, remove } = friendsApi
+  const { groups, error: groupsError, createGroup, leaveGroup } = groupsApi
   const [search, setSearch] = useState('')
   const [notice, setNotice] = useState('')
   const [searchError, setSearchError] = useState('')
@@ -106,6 +172,28 @@ export default function FriendsPanel({ friendsApi, unreadUids, onOpenChat, onClo
                   </button>
                 </div>
               ))
+            )}
+          </section>
+          <section>
+            <h4 className="friends-section-title">Group chats</h4>
+            {groupsError && <p className="auth-error">{groupsError}</p>}
+            {groups.map((g) => (
+              <div className="friend-row" key={g.id}>
+                <span className="friend-name">
+                  {g.name} <span className="subtext">({g.members.length})</span>
+                </span>
+                <button className="btn-primary friend-action" onClick={() => onOpenGroup(g)}>
+                  Open
+                </button>
+                <button className="btn-ghost friend-action" onClick={() => leaveGroup(g.id)}>
+                  Leave
+                </button>
+              </div>
+            ))}
+            {friends.length === 0 ? (
+              <p className="content-note">Add friends to start a group chat.</p>
+            ) : (
+              <GroupCreateForm friends={friends} createGroup={createGroup} />
             )}
           </section>
         </div>

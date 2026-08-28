@@ -3,17 +3,28 @@ import { fetchOlderBlogEntries, fetchRecentBlogEntries, fetchUsers, isAnnounceme
 import { useSeen } from '../hooks/useSeen'
 import BlogCard from './BlogCard'
 import CommentsPanel from './CommentsPanel'
+import SharePanel from './SharePanel'
 
 const LOAD_BATCH = 8
 const LOAD_AHEAD = 10
 
-export default function Feed({ reactions, friends, minScore, hideAnnouncements, onSignIn }) {
+export default function Feed({
+  reactions,
+  friends,
+  groups,
+  myName,
+  minScore,
+  hideAnnouncements,
+  keyword,
+  onSignIn,
+}) {
   const [entries, setEntries] = useState([])
   const [authors, setAuthors] = useState({})
   const [activeIndex, setActiveIndex] = useState(0)
   const [status, setStatus] = useState('loading')
   const [loadingMore, setLoadingMore] = useState(false)
   const [commentsFor, setCommentsFor] = useState(null)
+  const [shareFor, setShareFor] = useState(null)
   const containerRef = useRef(null)
   const knownIdsRef = useRef(new Set())
   const rewatchPoolRef = useRef([])
@@ -22,14 +33,18 @@ export default function Feed({ reactions, friends, minScore, hideAnnouncements, 
   const { isSeen, markSeen, loaded: seenLoaded } = useSeen()
   const { likes, saves, error, clearError, toggleLike, toggleSave } = reactions
 
+  const kw = (keyword || '').trim().toLowerCase()
   const visible = useMemo(
     () =>
       entries.filter(
         (e) =>
           (minScore == null || e.rating >= minScore) &&
-          (!hideAnnouncements || !isAnnouncement(e))
+          (!hideAnnouncements || !isAnnouncement(e)) &&
+          (kw === '' ||
+            e.title.toLowerCase().includes(kw) ||
+            (e.tags || []).some((t) => t.toLowerCase().includes(kw)))
       ),
-    [entries, minScore, hideAnnouncements]
+    [entries, minScore, hideAnnouncements, kw]
   )
 
   const addEntries = useCallback(async (list) => {
@@ -141,9 +156,11 @@ export default function Feed({ reactions, friends, minScore, hideAnnouncements, 
     return (
       <div className="feed-status">
         {loadingMore
-          ? 'Finding blogs you haven\u2019t seen yet\u2026'
-          : minScore != null
-            ? `Every blog was filtered out (score \u2265 ${minScore}). Try lowering the filter.`
+          ? kw !== ''
+            ? `Searching for blogs matching \u201c${kw}\u201d\u2026`
+            : 'Finding blogs you haven\u2019t seen yet\u2026'
+          : minScore != null || kw !== ''
+            ? 'Every blog was filtered out. Try loosening the filters.'
             : 'Looking for more blogs\u2026'}
       </div>
     )
@@ -171,6 +188,7 @@ export default function Feed({ reactions, friends, minScore, hideAnnouncements, 
             onLike={() => toggleLike(entry)}
             onSave={() => toggleSave(entry)}
             onComments={() => setCommentsFor(entry)}
+            onShare={() => setShareFor(entry)}
           />
         </div>
       ))}
@@ -179,6 +197,16 @@ export default function Feed({ reactions, friends, minScore, hideAnnouncements, 
         <CommentsPanel
           entry={commentsFor}
           onClose={() => setCommentsFor(null)}
+          onSignIn={onSignIn}
+        />
+      )}
+      {shareFor && (
+        <SharePanel
+          entry={shareFor}
+          friends={friends}
+          groups={groups}
+          myName={myName}
+          onClose={() => setShareFor(null)}
           onSignIn={onSignIn}
         />
       )}

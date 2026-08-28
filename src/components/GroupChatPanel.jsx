@@ -9,10 +9,9 @@ import {
 } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { useAuth } from '../hooks/useAuth'
-import { chatPairId } from '../hooks/useFriends'
 import { timeAgo } from '../lib/codeforces'
 
-export default function ChatPanel({ friend, onBack, onClose, onOpenBlog }) {
+export default function GroupChatPanel({ group, myName, onBack, onClose, onOpenBlog }) {
   const { user } = useAuth()
   const [messages, setMessages] = useState(null)
   const [text, setText] = useState('')
@@ -20,15 +19,13 @@ export default function ChatPanel({ friend, onBack, onClose, onOpenBlog }) {
   const [busy, setBusy] = useState(false)
   const bottomRef = useRef(null)
 
-  const pairId = chatPairId(user.uid, friend.uid)
-
   useEffect(() => {
     return onSnapshot(
-      query(collection(db, 'chats', pairId, 'messages'), orderBy('createdAt', 'asc')),
+      query(collection(db, 'groups', group.id, 'messages'), orderBy('createdAt', 'asc')),
       (snap) => setMessages(snap.docs.map((d) => ({ id: d.id, ...d.data() }))),
       (err) => setError(`Couldn't load messages: ${err.message}`)
     )
-  }, [pairId])
+  }, [group.id])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: 'end' })
@@ -41,8 +38,9 @@ export default function ChatPanel({ friend, onBack, onClose, onOpenBlog }) {
     setBusy(true)
     setError('')
     try {
-      await addDoc(collection(db, 'chats', pairId, 'messages'), {
+      await addDoc(collection(db, 'groups', group.id, 'messages'), {
         from: user.uid,
+        fromName: myName || 'anonymous',
         text: trimmed,
         createdAt: serverTimestamp(),
       })
@@ -54,8 +52,6 @@ export default function ChatPanel({ friend, onBack, onClose, onOpenBlog }) {
     }
   }
 
-  const name = friend.profile?.name || 'friend'
-
   return (
     <div className="comments-backdrop" onClick={onClose}>
       <aside className="comments-panel" onClick={(e) => e.stopPropagation()}>
@@ -64,9 +60,11 @@ export default function ChatPanel({ friend, onBack, onClose, onOpenBlog }) {
             <button className="btn-link" onClick={onBack}>
               ← Friends
             </button>
-            <h3 className="comments-title">{name}</h3>
+            <h3 className="comments-title">
+              {group.name} <span className="subtext">({group.members.length})</span>
+            </h3>
           </div>
-          <button className="modal-close" onClick={onClose} aria-label="Close chat">
+          <button className="modal-close" onClick={onClose} aria-label="Close group chat">
             ✕
           </button>
         </header>
@@ -83,6 +81,7 @@ export default function ChatPanel({ friend, onBack, onClose, onOpenBlog }) {
                 className={`chat-msg ${m.from === user.uid ? 'chat-msg-mine' : ''}`}
                 key={m.id}
               >
+                {m.from !== user.uid && <span className="chat-msg-name">{m.fromName}</span>}
                 {m.blog ? (
                   <button className="chat-share" onClick={() => onOpenBlog(m.blog)}>
                     <span className="chat-share-title">📄 {m.blog.title}</span>
@@ -101,7 +100,7 @@ export default function ChatPanel({ friend, onBack, onClose, onOpenBlog }) {
         </div>
         <form className="comment-form" onSubmit={submit}>
           <input
-            placeholder={`Message ${name}…`}
+            placeholder={`Message ${group.name}…`}
             value={text}
             maxLength={2000}
             onChange={(e) => setText(e.target.value)}

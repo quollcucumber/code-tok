@@ -11,7 +11,16 @@ function friendLikeText(likers) {
   return `Liked by ${names[0]} and ${names.length - 1} other friends`
 }
 
-export default function SavedBlogView({ blogId, item, friends, liked, onLike, onSignIn, onBack }) {
+export default function SavedBlogView({
+  blogId,
+  item,
+  friends,
+  liked,
+  onLike,
+  onSignIn,
+  onBack,
+  backLabel = '← Saved blogs',
+}) {
   const [content, setContent] = useState(null)
   const [error, setError] = useState(false)
   const [showComments, setShowComments] = useState(false)
@@ -36,7 +45,7 @@ export default function SavedBlogView({ blogId, item, friends, liked, onLike, on
     <div className="saved-view">
       <div className="saved-blog-bar">
         <button className="btn-ghost" onClick={onBack}>
-          ← Saved blogs
+          {backLabel}
         </button>
         <div className="saved-blog-actions">
           <button

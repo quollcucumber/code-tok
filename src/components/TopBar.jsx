@@ -15,6 +15,10 @@ export default function TopBar({
   onThemeToggle,
   hideAnnouncements,
   onHideAnnouncementsChange,
+  keyword,
+  onKeywordChange,
+  isAdmin,
+  onAdminClick,
 }) {
   const { user, logOut } = useAuth()
   const [showFilter, setShowFilter] = useState(false)
@@ -28,10 +32,11 @@ export default function TopBar({
         {view === 'feed' && (
           <div className="filter-wrap">
             <button
-              className={`btn-ghost ${minScore != null || hideAnnouncements ? 'btn-ghost-active' : ''}`}
+              className={`btn-ghost ${minScore != null || hideAnnouncements || keyword ? 'btn-ghost-active' : ''}`}
               onClick={() => setShowFilter((v) => !v)}
             >
               Filter{minScore != null ? ` ≥ ${minScore}` : ''}
+              {keyword ? ` · “${keyword}”` : ''}
             </button>
             {showFilter && (
               <div className="filter-menu">
@@ -52,6 +57,17 @@ export default function TopBar({
                   Score is upvotes minus downvotes, so 0 hides blogs with more downvotes than
                   upvotes.
                 </p>
+                <label className="filter-label" htmlFor="keyword-filter">
+                  Only show blogs matching
+                </label>
+                <input
+                  id="keyword-filter"
+                  type="text"
+                  className="filter-input"
+                  placeholder="keyword, e.g. dp"
+                  value={keyword}
+                  onChange={(e) => onKeywordChange(e.target.value)}
+                />
                 <label className="filter-check">
                   <input
                     type="checkbox"
@@ -60,8 +76,14 @@ export default function TopBar({
                   />
                   Hide announcement blogs
                 </label>
-                <button className="btn-link" onClick={() => onMinScoreChange(null)}>
-                  Clear filter
+                <button
+                  className="btn-link"
+                  onClick={() => {
+                    onMinScoreChange(null)
+                    onKeywordChange('')
+                  }}
+                >
+                  Clear filters
                 </button>
               </div>
             )}
@@ -87,6 +109,11 @@ export default function TopBar({
         >
           {view === 'board' ? 'Feed' : '🏆'}
         </button>
+        {isAdmin && (
+          <button className="btn-ghost" onClick={onAdminClick} aria-label="Admin">
+            🛡️
+          </button>
+        )}
         {user ? (
           <div className="topbar-user">
             <button className="btn-ghost topbar-friends" onClick={onFriendsClick}>
