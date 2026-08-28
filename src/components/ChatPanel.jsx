@@ -12,6 +12,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useAdminUids } from '../hooks/useAdmin'
 import AdminBadge from './AdminBadge'
 import { chatPairId } from '../hooks/useFriends'
+import { IMAGE_PLACEHOLDER, fileToChatImage } from '../hooks/useProfile'
 import { timeAgo } from '../lib/codeforces'
 
 export default function ChatPanel({ friend, onBack, onClose, onOpenBlog }) {
@@ -19,6 +20,7 @@ export default function ChatPanel({ friend, onBack, onClose, onOpenBlog }) {
   const adminUids = useAdminUids()
   const [messages, setMessages] = useState(null)
   const [text, setText] = useState('')
+  const [image, setImage] = useState(null)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const bottomRef = useRef(null)
@@ -37,19 +39,34 @@ export default function ChatPanel({ friend, onBack, onClose, onOpenBlog }) {
     bottomRef.current?.scrollIntoView({ block: 'end' })
   }, [messages])
 
+  async function pickImage(e) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setError('')
+    try {
+      setImage(await fileToChatImage(file))
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
   async function submit(e) {
     e.preventDefault()
     const trimmed = text.trim()
-    if (!trimmed) return
+    if (!trimmed && !image) return
     setBusy(true)
     setError('')
     try {
-      await addDoc(collection(db, 'chats', pairId, 'messages'), {
+      const msg = {
         from: user.uid,
-        text: trimmed,
+        text: trimmed || IMAGE_PLACEHOLDER,
         createdAt: serverTimestamp(),
-      })
+      }
+      if (image) msg.image = image
+      await addDoc(collection(db, 'chats', pairId, 'messages'), msg)
       setText('')
+      setImage(null)
     } catch (err) {
       setError(`Couldn't send: ${err.message}`)
     } finally {
@@ -95,7 +112,12 @@ export default function ChatPanel({ friend, onBack, onClose, onOpenBlog }) {
                     <span className="subtext">by {m.blog.authorHandle} — tap to read</span>
                   </button>
                 ) : (
-                  <p className="chat-msg-text">{m.text}</p>
+                  <>
+                    {m.image && <img className="chat-image" src={m.image} alt="" />}
+                    {(!m.image || m.text !== IMAGE_PLACEHOLDER) && (
+                      <p className="chat-msg-text">{m.text}</p>
+                    )}
+                  </>
                 )}
                 <span className="subtext">
                   {m.createdAt ? timeAgo(m.createdAt.seconds) : 'sending…'}
@@ -105,14 +127,30 @@ export default function ChatPanel({ friend, onBack, onClose, onOpenBlog }) {
           )}
           <div ref={bottomRef} />
         </div>
+        {image && (
+          <div className="chat-image-preview">
+            <img src={image} alt="" />
+            <button className="btn-link" type="button" onClick={() => setImage(null)}>
+              ✕ Remove
+            </button>
+          </div>
+        )}
         <form className="comment-form" onSubmit={submit}>
+          <label className="btn-ghost chat-image-btn" title="Send an image">
+            📷
+            <input type="file" accept="image/*" onChange={pickImage} hidden />
+          </label>
           <input
             placeholder={`Message ${name}…`}
             value={text}
             maxLength={2000}
             onChange={(e) => setText(e.target.value)}
           />
-          <button className="btn-primary" type="submit" disabled={busy || !text.trim()}>
+          <button
+            className="btn-primary"
+            type="submit"
+            disabled={busy || (!text.trim() && !image)}
+          >
             Send
           </button>
         </form>

@@ -87,7 +87,10 @@ The feed works immediately with no configuration (likes/saves fall back to local
            && pairId.split('_').hasAny([request.auth.uid])
            && request.resource.data.text is string
            && request.resource.data.text.size() > 0
-           && request.resource.data.text.size() <= 2000;
+           && request.resource.data.text.size() <= 2000
+           && (!('image' in request.resource.data)
+             || (request.resource.data.image is string
+               && request.resource.data.image.size() <= 500000));
        }
        match /blogLikes/{blogId}/likers/{uid} {
          allow read: if true;
@@ -115,7 +118,10 @@ The feed works immediately with no configuration (likes/saves fall back to local
            && request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.members
            && request.resource.data.text is string
            && request.resource.data.text.size() > 0
-           && request.resource.data.text.size() <= 2000;
+           && request.resource.data.text.size() <= 2000
+           && (!('image' in request.resource.data)
+             || (request.resource.data.image is string
+               && request.resource.data.image.size() <= 500000));
        }
        match /bans/{uid} {
          allow read: if isAdmin() || (request.auth != null && request.auth.uid == uid);

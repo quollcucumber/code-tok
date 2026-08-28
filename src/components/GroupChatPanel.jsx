@@ -13,6 +13,7 @@ import { db } from '../lib/firebase'
 import { useAuth } from '../hooks/useAuth'
 import { useAdminUids } from '../hooks/useAdmin'
 import AdminBadge from './AdminBadge'
+import { IMAGE_PLACEHOLDER, fileToChatImage } from '../hooks/useProfile'
 import { timeAgo } from '../lib/codeforces'
 
 export default function GroupChatPanel({
@@ -29,6 +30,7 @@ export default function GroupChatPanel({
   const adminUids = useAdminUids()
   const [messages, setMessages] = useState(null)
   const [text, setText] = useState('')
+  const [image, setImage] = useState(null)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [showMembers, setShowMembers] = useState(false)
@@ -81,20 +83,35 @@ export default function GroupChatPanel({
     }
   }
 
+  async function pickImage(e) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setError('')
+    try {
+      setImage(await fileToChatImage(file))
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
   async function submit(e) {
     e.preventDefault()
     const trimmed = text.trim()
-    if (!trimmed) return
+    if (!trimmed && !image) return
     setBusy(true)
     setError('')
     try {
-      await addDoc(collection(db, 'groups', group.id, 'messages'), {
+      const msg = {
         from: user.uid,
         fromName: myName || 'anonymous',
-        text: trimmed,
+        text: trimmed || IMAGE_PLACEHOLDER,
         createdAt: serverTimestamp(),
-      })
+      }
+      if (image) msg.image = image
+      await addDoc(collection(db, 'groups', group.id, 'messages'), msg)
       setText('')
+      setImage(null)
     } catch (err) {
       setError(`Couldn't send: ${err.message}`)
     } finally {
@@ -196,7 +213,12 @@ export default function GroupChatPanel({
                     <span className="subtext">by {m.blog.authorHandle} — tap to read</span>
                   </button>
                 ) : (
-                  <p className="chat-msg-text">{m.text}</p>
+                  <>
+                    {m.image && <img className="chat-image" src={m.image} alt="" />}
+                    {(!m.image || m.text !== IMAGE_PLACEHOLDER) && (
+                      <p className="chat-msg-text">{m.text}</p>
+                    )}
+                  </>
                 )}
                 <span className="subtext">
                   {m.createdAt ? timeAgo(m.createdAt.seconds) : 'sending…'}
@@ -206,14 +228,30 @@ export default function GroupChatPanel({
           )}
           <div ref={bottomRef} />
         </div>
+        {image && (
+          <div className="chat-image-preview">
+            <img src={image} alt="" />
+            <button className="btn-link" type="button" onClick={() => setImage(null)}>
+              ✕ Remove
+            </button>
+          </div>
+        )}
         <form className="comment-form" onSubmit={submit}>
+          <label className="btn-ghost chat-image-btn" title="Send an image">
+            📷
+            <input type="file" accept="image/*" onChange={pickImage} hidden />
+          </label>
           <input
             placeholder={`Message ${group.name}…`}
             value={text}
             maxLength={2000}
             onChange={(e) => setText(e.target.value)}
           />
-          <button className="btn-primary" type="submit" disabled={busy || !text.trim()}>
+          <button
+            className="btn-primary"
+            type="submit"
+            disabled={busy || (!text.trim() && !image)}
+          >
             Send
           </button>
         </form>

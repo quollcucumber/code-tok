@@ -15,9 +15,10 @@ function readReadMap() {
   }
 }
 
-// Watches the latest message of every friend chat so the app can pop a toast,
-// fire a browser notification when the tab is hidden, and show unread badges.
-export function useChatAlerts(friends, activeChatUid) {
+// Watches the latest message of every friend chat and group chat so the app
+// can pop a toast, fire a browser notification when the tab is hidden, and
+// show unread badges. Group entries use a `group:` key prefix in the read map.
+export function useChatAlerts(friends, groups, activeChatUid, activeGroupId) {
   const { user, configured } = useAuth()
   const [latest, setLatest] = useState({})
   const [toast, setToast] = useState(null)
@@ -55,20 +56,46 @@ export function useChatAlerts(friends, activeChatUid) {
     return () => unsubs.forEach((unsub) => unsub())
   }, [configured, uid, friends])
 
-  const markRead = useCallback((friendUid, seconds) => {
+  useEffect(() => {
+    if (!configured || !uid || groups.length === 0) return
+    const unsubs = groups.map((group) => {
+      return onSnapshot(
+        query(
+          collection(db, 'groups', group.id, 'messages'),
+          orderBy('createdAt', 'desc'),
+          limit(1)
+        ),
+        (snap) => {
+          const docSnap = snap.docs[0]
+          if (!docSnap || !docSnap.data().createdAt) return
+          setLatest((prev) => ({
+            ...prev,
+            [`group:${group.id}`]: { id: docSnap.id, group, ...docSnap.data() },
+          }))
+        },
+        () => {}
+      )
+    })
+    return () => unsubs.forEach((unsub) => unsub())
+  }, [configured, uid, groups])
+
+  const markRead = useCallback((key, seconds) => {
     setReadMap((prev) => {
-      if ((prev[friendUid] || 0) >= seconds) return prev
-      const next = { ...prev, [friendUid]: seconds }
+      if ((prev[key] || 0) >= seconds) return prev
+      const next = { ...prev, [key]: seconds }
       localStorage.setItem(READ_KEY, JSON.stringify(next))
       return next
     })
   }, [])
 
   useEffect(() => {
-    for (const [friendUid, msg] of Object.entries(latest)) {
+    for (const [key, msg] of Object.entries(latest)) {
       const seconds = msg.createdAt.seconds
-      if (msg.from === uid || friendUid === activeChatUid) {
-        markRead(friendUid, seconds)
+      const isActive = msg.group
+        ? msg.group.id === activeGroupId
+        : key === activeChatUid
+      if (msg.from === uid || isActive) {
+        markRead(key, seconds)
         continue
       }
       if (seconds <= (mountedAtRef.current ?? Infinity) || notifiedRef.current.has(msg.id))
@@ -76,10 +103,13 @@ export function useChatAlerts(friends, activeChatUid) {
       notifiedRef.current.add(msg.id)
       setToast(msg)
       if (document.hidden && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-        new Notification(msg.friend.profile?.name || 'New message', { body: msg.text })
+        const title = msg.group
+          ? `${msg.fromName || 'Someone'} in ${msg.group.name}`
+          : msg.friend.profile?.name || 'New message'
+        new Notification(title, { body: msg.text })
       }
     }
-  }, [latest, uid, activeChatUid, markRead])
+  }, [latest, uid, activeChatUid, activeGroupId, markRead])
 
   useEffect(() => {
     if (!toast) return
@@ -89,23 +119,38 @@ export function useChatAlerts(friends, activeChatUid) {
 
   useEffect(() => {
     if (
-      friends.length > 0 &&
+      (friends.length > 0 || groups.length > 0) &&
       typeof Notification !== 'undefined' &&
       Notification.permission === 'default'
     ) {
       Notification.requestPermission().catch(() => {})
     }
-  }, [friends.length])
+  }, [friends.length, groups.length])
 
   const unreadUids = useMemo(() => {
     const set = new Set()
-    for (const [friendUid, msg] of Object.entries(latest)) {
-      if (msg.from !== uid && msg.createdAt.seconds > (readMap[friendUid] || 0)) {
-        set.add(friendUid)
+    for (const [key, msg] of Object.entries(latest)) {
+      if (!msg.group && msg.from !== uid && msg.createdAt.seconds > (readMap[key] || 0)) {
+        set.add(key)
       }
     }
     return set
   }, [latest, readMap, uid])
 
-  return { toast, dismissToast: () => setToast(null), unreadUids }
+  const unreadGroupIds = useMemo(() => {
+    const set = new Set()
+    for (const [key, msg] of Object.entries(latest)) {
+      if (
+        msg.group &&
+        msg.from !== uid &&
+        msg.createdAt.seconds > (readMap[key] || 0) &&
+        groups.some((g) => g.id === msg.group.id)
+      ) {
+        set.add(msg.group.id)
+      }
+    }
+    return set
+  }, [latest, readMap, uid, groups])
+
+  return { toast, dismissToast: () => setToast(null), unreadUids, unreadGroupIds }
 }

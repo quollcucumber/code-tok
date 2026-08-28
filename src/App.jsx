@@ -51,9 +51,11 @@ function Main() {
   const groupsApi = useGroups()
   const { isAdmin, banned } = useAdmin()
   const { profile, saveProfile } = useProfile()
-  const { toast, dismissToast, unreadUids } = useChatAlerts(
+  const { toast, dismissToast, unreadUids, unreadGroupIds } = useChatAlerts(
     friendsApi.friends,
-    chatFriend?.uid ?? null
+    groupsApi.groups,
+    chatFriend?.uid ?? null,
+    chatGroup?.id ?? null
   )
 
   useEffect(() => {
@@ -89,7 +91,7 @@ function Main() {
         onProfileClick={() => setShowProfile(true)}
         onFriendsClick={() => setShowFriends(true)}
         profile={profile}
-        friendRequestCount={friendsApi.incoming.length + unreadUids.size}
+        friendRequestCount={friendsApi.incoming.length + unreadUids.size + unreadGroupIds.size}
         view={view}
         onViewChange={setView}
         minScore={minScore}
@@ -154,6 +156,7 @@ function Main() {
           friendsApi={friendsApi}
           groupsApi={groupsApi}
           unreadUids={unreadUids}
+          unreadGroupIds={unreadGroupIds}
           onOpenChat={(f) => setChatFriend(f)}
           onOpenGroup={(g) => setChatGroup(g)}
           onClose={() => setShowFriends(false)}
@@ -164,12 +167,22 @@ function Main() {
         <button
           className="msg-toast"
           onClick={() => {
-            setChatFriend(toast.friend)
+            if (toast.group) {
+              setChatGroup(toast.group)
+              setChatFriend(null)
+            } else {
+              setChatFriend(toast.friend)
+              setChatGroup(null)
+            }
             setShowFriends(true)
             dismissToast()
           }}
         >
-          {toast.friend.profile?.photo ? (
+          {toast.group ? (
+            <div className="avatar avatar-sm avatar-fallback">
+              {(toast.group.name || '?')[0].toUpperCase()}
+            </div>
+          ) : toast.friend.profile?.photo ? (
             <img className="avatar avatar-sm" src={toast.friend.profile.photo} alt="" />
           ) : (
             <div className="avatar avatar-sm avatar-fallback">
@@ -177,7 +190,11 @@ function Main() {
             </div>
           )}
           <span className="msg-toast-body">
-            <strong>{toast.friend.profile?.name || 'New message'}</strong>
+            <strong>
+              {toast.group
+                ? `${toast.fromName || 'Someone'} in ${toast.group.name}`
+                : toast.friend.profile?.name || 'New message'}
+            </strong>
             <span className="msg-toast-text">{toast.text}</span>
           </span>
         </button>

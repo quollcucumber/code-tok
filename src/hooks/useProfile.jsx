@@ -81,3 +81,34 @@ export function fileToAvatar(file, size = 96) {
     img.src = url
   })
 }
+
+// Fallback text stored on image-only chat messages so notification previews
+// and Firestore rules (which require non-empty text) keep working.
+export const IMAGE_PLACEHOLDER = '\ud83d\udcf7 Photo'
+
+// Downscales an image file to a JPEG data URL small enough to embed in a chat
+// message document (Firestore docs max out at 1 MiB).
+export function fileToChatImage(file, maxSide = 900, maxChars = 500000) {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      const scale = Math.min(1, maxSide / Math.max(img.width, img.height))
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.max(1, Math.round(img.width * scale))
+      canvas.height = Math.max(1, Math.round(img.height * scale))
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height)
+      for (const quality of [0.8, 0.6, 0.45, 0.3]) {
+        const dataUrl = canvas.toDataURL('image/jpeg', quality)
+        if (dataUrl.length <= maxChars) return resolve(dataUrl)
+      }
+      reject(new Error('That image is too large to send'))
+    }
+    img.onerror = () => {
+      URL.revokeObjectURL(url)
+      reject(new Error('Could not read that image'))
+    }
+    img.src = url
+  })
+}
