@@ -12,7 +12,7 @@ import { useAuth } from '../hooks/useAuth'
 import { chatPairId } from '../hooks/useFriends'
 import { timeAgo } from '../lib/codeforces'
 
-export default function ChatPanel({ friend, onBack, onClose }) {
+export default function ChatPanel({ friend, onBack, onClose, onOpenBlog }) {
   const { user } = useAuth()
   const [messages, setMessages] = useState(null)
   const [text, setText] = useState('')
@@ -83,7 +83,14 @@ export default function ChatPanel({ friend, onBack, onClose }) {
                 className={`chat-msg ${m.from === user.uid ? 'chat-msg-mine' : ''}`}
                 key={m.id}
               >
-                <p className="chat-msg-text">{m.text}</p>
+                {m.blog ? (
+                  <button className="chat-share" onClick={() => onOpenBlog(m.blog)}>
+                    <span className="chat-share-title">📄 {m.blog.title}</span>
+                    <span className="subtext">by {m.blog.authorHandle} — tap to read</span>
+                  </button>
+                ) : (
+                  <p className="chat-msg-text">{m.text}</p>
+                )}
                 <span className="subtext">
                   {m.createdAt ? timeAgo(m.createdAt.seconds) : 'sending…'}
                 </span>

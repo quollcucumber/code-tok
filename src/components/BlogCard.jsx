@@ -20,6 +20,7 @@ export default function BlogCard({
   onLike,
   onSave,
   onComments,
+  onShare,
 }) {
   const [content, setContent] = useState(null)
   const [error, setError] = useState(false)
@@ -121,6 +122,10 @@ export default function BlogCard({
         <button className="rail-btn" onClick={onComments} aria-label="Comments">
           <span className="rail-icon">💬</span>
           <span className="rail-label">Chat</span>
+        </button>
+        <button className="rail-btn" onClick={onShare} aria-label="Share">
+          <span className="rail-icon">📤</span>
+          <span className="rail-label">Share</span>
         </button>
         <a className="rail-btn" href={entry.url} target="_blank" rel="noreferrer" aria-label="Open on Codeforces">
           <span className="rail-icon">↗️</span>

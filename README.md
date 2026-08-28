@@ -42,17 +42,25 @@ The feed works immediately with no configuration (likes/saves fall back to local
    rules_version = '2';
    service cloud.firestore {
      match /databases/{database}/documents {
+       function isAdmin() {
+         return request.auth != null && request.auth.token.email == 'rcodetok@greatcactus.org';
+       }
+       function notBanned() {
+         return request.auth != null
+           && !exists(/databases/$(database)/documents/bans/$(request.auth.uid));
+       }
        match /users/{uid}/{collection}/{docId} {
          allow read, write: if request.auth != null && request.auth.uid == uid;
        }
        match /blogs/{blogId}/comments/{commentId} {
          allow read: if true;
-         allow create: if request.auth != null
+         allow create: if notBanned()
            && request.resource.data.uid == request.auth.uid
            && request.resource.data.text is string
            && request.resource.data.text.size() > 0
            && request.resource.data.text.size() <= 2000;
-         allow delete: if request.auth != null && request.auth.uid == resource.data.uid;
+         allow delete: if isAdmin()
+           || (request.auth != null && request.auth.uid == resource.data.uid);
        }
        match /profiles/{uid} {
          allow read: if true;
@@ -60,7 +68,7 @@ The feed works immediately with no configuration (likes/saves fall back to local
        }
        match /friendships/{pairId} {
          allow read: if request.auth != null && request.auth.uid in resource.data.members;
-         allow create: if request.auth != null
+         allow create: if notBanned()
            && request.resource.data.from == request.auth.uid
            && request.resource.data.status == 'pending'
            && request.auth.uid in request.resource.data.members
@@ -73,7 +81,7 @@ The feed works immediately with no configuration (likes/saves fall back to local
        }
        match /chats/{pairId}/messages/{msgId} {
          allow read: if request.auth != null && pairId.split('_').hasAny([request.auth.uid]);
-         allow create: if request.auth != null
+         allow create: if notBanned()
            && request.resource.data.from == request.auth.uid
            && pairId.split('_').hasAny([request.auth.uid])
            && request.resource.data.text is string
@@ -82,7 +90,35 @@ The feed works immediately with no configuration (likes/saves fall back to local
        }
        match /blogLikes/{blogId}/likers/{uid} {
          allow read: if true;
-         allow write: if request.auth != null && request.auth.uid == uid;
+         allow write: if notBanned() && request.auth.uid == uid;
+       }
+       match /groups/{groupId} {
+         allow read: if request.auth != null && request.auth.uid in resource.data.members;
+         allow create: if notBanned()
+           && request.resource.data.createdBy == request.auth.uid
+           && request.auth.uid in request.resource.data.members
+           && request.resource.data.name is string
+           && request.resource.data.name.size() > 0
+           && request.resource.data.name.size() <= 50;
+         allow update: if notBanned()
+           && request.auth.uid in resource.data.members
+           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members']);
+         allow delete: if isAdmin()
+           || (request.auth != null && request.auth.uid == resource.data.createdBy);
+       }
+       match /groups/{groupId}/messages/{msgId} {
+         allow read: if request.auth != null
+           && request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.members;
+         allow create: if notBanned()
+           && request.resource.data.from == request.auth.uid
+           && request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.members
+           && request.resource.data.text is string
+           && request.resource.data.text.size() > 0
+           && request.resource.data.text.size() <= 2000;
+       }
+       match /bans/{uid} {
+         allow read: if isAdmin() || (request.auth != null && request.auth.uid == uid);
+         allow write: if isAdmin();
        }
      }
    }
