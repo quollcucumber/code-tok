@@ -2,16 +2,18 @@
 // of the Codeforces API (one {i,t,a,r,c,g} object per line — id, title,
 // authorHandle, rating, creationTimeSeconds, tags).
 //
-// Usage: node scripts/build-blog-index.mjs path/to/blogs.jsonl [minCrawledId]
-// minCrawledId: the crawl frontier (lowest id already checked); defaults to
-// the lowest found id. Pass 1 when the crawl is complete.
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+// Usage: node scripts/build-blog-index.mjs [path/to/blogs.jsonl] [minCrawledId]
+// Defaults: data/blogs.jsonl, and the crawl frontier from data/index-meta.json
+// (minCrawledId is the lowest id already checked — blogs below it exist but
+// weren't crawled, so the app falls back to the live API there; it is 1 once
+// the crawl is complete).
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 
 const CHUNK_SIZE = 2000
 
-const src = process.argv[2]
-if (!src) {
-  console.error('Usage: node scripts/build-blog-index.mjs path/to/blogs.jsonl')
+const src = process.argv[2] || new URL('../data/blogs.jsonl', import.meta.url).pathname
+if (!existsSync(src)) {
+  console.error(`No blog data at ${src}`)
   process.exit(1)
 }
 
@@ -27,8 +29,13 @@ if (all.length === 0) {
   process.exit(1)
 }
 
+const metaPath = new URL('../data/index-meta.json', import.meta.url).pathname
 const maxId = all[0].i
-const minId = process.argv[3] ? Number(process.argv[3]) : all[all.length - 1].i
+const minId = process.argv[3]
+  ? Number(process.argv[3])
+  : existsSync(metaPath)
+    ? JSON.parse(readFileSync(metaPath, 'utf8')).minCrawledId
+    : all[all.length - 1].i
 const outDir = new URL('../public/blog-index/', import.meta.url).pathname
 rmSync(outDir, { recursive: true, force: true })
 mkdirSync(outDir, { recursive: true })

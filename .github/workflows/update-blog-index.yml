@@ -1,0 +1,46 @@
+# Keeps the static blog index fresh: every day it probes Codeforces for blogs
+# newer than the highest indexed id, commits the updated data, rebuilds the
+# site, and redeploys to Firebase Hosting.
+#
+# Requires one repo secret: FIREBASE_SERVICE_ACCOUNT — the full JSON of a
+# service account with the "Firebase Hosting Admin" role (Settings → Secrets
+# and variables → Actions → New repository secret).
+name: Update blog index
+
+on:
+  schedule:
+    - cron: '17 4 * * *'
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Crawl new blogs
+        run: node scripts/update-blog-index.mjs
+      - name: Install and build
+        run: |
+          npm ci
+          npm run build
+      - name: Deploy to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          channelId: live
+          projectId: code-tok
+      - name: Commit updated data
+        run: |
+          if ! git diff --quiet data/blogs.jsonl; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add data/blogs.jsonl
+            git commit -m "Update blog index data"
+            git push
+          fi
