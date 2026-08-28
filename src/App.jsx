@@ -197,6 +197,9 @@ function Main() {
         <GroupChatPanel
           group={groupsApi.groups.find((g) => g.id === chatGroup.id) || chatGroup}
           myName={profile?.name}
+          friends={friendsApi.friends}
+          addMember={groupsApi.addMember}
+          leaveGroup={groupsApi.leaveGroup}
           onBack={() => setChatGroup(null)}
           onClose={() => {
             setChatGroup(null)
