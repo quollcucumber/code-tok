@@ -11,6 +11,8 @@ import {
 } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { useAuth } from '../hooks/useAuth'
+import { useAdminUids } from '../hooks/useAdmin'
+import AdminBadge from './AdminBadge'
 import { timeAgo } from '../lib/codeforces'
 
 export default function GroupChatPanel({
@@ -24,6 +26,7 @@ export default function GroupChatPanel({
   onOpenBlog,
 }) {
   const { user } = useAuth()
+  const adminUids = useAdminUids()
   const [messages, setMessages] = useState(null)
   const [text, setText] = useState('')
   const [error, setError] = useState('')
@@ -136,6 +139,7 @@ export default function GroupChatPanel({
                   )}
                   <span className="friend-name">
                     {uid === user.uid ? 'You' : p?.name || '…'}
+                    <AdminBadge show={adminUids.has(uid)} />
                     {uid === group.createdBy && <span className="subtext"> · creator</span>}
                   </span>
                 </div>
@@ -180,7 +184,12 @@ export default function GroupChatPanel({
                 className={`chat-msg ${m.from === user.uid ? 'chat-msg-mine' : ''}`}
                 key={m.id}
               >
-                {m.from !== user.uid && <span className="chat-msg-name">{m.fromName}</span>}
+                {m.from !== user.uid && (
+                  <span className="chat-msg-name">
+                    {m.fromName}
+                    <AdminBadge show={adminUids.has(m.from)} />
+                  </span>
+                )}
                 {m.blog ? (
                   <button className="chat-share" onClick={() => onOpenBlog(m.blog)}>
                     <span className="chat-share-title">📄 {m.blog.title}</span>

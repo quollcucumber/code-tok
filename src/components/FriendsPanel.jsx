@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { useAdminUids } from '../hooks/useAdmin'
+import AdminBadge from './AdminBadge'
 
 function Avatar({ profile }) {
   return profile?.photo ? (
@@ -78,6 +80,7 @@ export default function FriendsPanel({
 }) {
   const { friends, incoming, outgoing, error, sendRequest, accept, remove } = friendsApi
   const { groups, error: groupsError, createGroup, leaveGroup } = groupsApi
+  const adminUids = useAdminUids()
   const [search, setSearch] = useState('')
   const [notice, setNotice] = useState('')
   const [searchError, setSearchError] = useState('')
@@ -127,7 +130,10 @@ export default function FriendsPanel({
               {incoming.map((f) => (
                 <div className="friend-row" key={f.uid}>
                   <Avatar profile={f.profile} />
-                  <span className="friend-name">{f.profile?.name || '…'}</span>
+                  <span className="friend-name">
+                    {f.profile?.name || '…'}
+                    <AdminBadge show={adminUids.has(f.uid)} />
+                  </span>
                   <button className="btn-primary friend-action" onClick={() => accept(f.pairId)}>
                     Accept
                   </button>
@@ -144,7 +150,10 @@ export default function FriendsPanel({
               {outgoing.map((f) => (
                 <div className="friend-row" key={f.uid}>
                   <Avatar profile={f.profile} />
-                  <span className="friend-name">{f.profile?.name || '…'}</span>
+                  <span className="friend-name">
+                    {f.profile?.name || '…'}
+                    <AdminBadge show={adminUids.has(f.uid)} />
+                  </span>
                   <button className="btn-ghost friend-action" onClick={() => remove(f.pairId)}>
                     Cancel
                   </button>
@@ -162,6 +171,7 @@ export default function FriendsPanel({
                   <Avatar profile={f.profile} />
                   <span className="friend-name">
                     {f.profile?.name || '…'}
+                    <AdminBadge show={adminUids.has(f.uid)} />
                     {unreadUids.has(f.uid) && <span className="unread-dot" />}
                   </span>
                   <button className="btn-primary friend-action" onClick={() => onOpenChat(f)}>

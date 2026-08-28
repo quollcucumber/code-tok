@@ -1,11 +1,14 @@
 import { useState } from 'react'
 import { useComments } from '../hooks/useComments'
 import { useAuth } from '../hooks/useAuth'
+import { useAdminUids } from '../hooks/useAdmin'
+import AdminBadge from './AdminBadge'
 import { timeAgo } from '../lib/codeforces'
 
 export default function CommentsPanel({ entry, onClose, onSignIn }) {
   const { user, configured } = useAuth()
   const { comments, error, canComment, addComment, deleteComment } = useComments(entry.id)
+  const adminUids = useAdminUids()
   const [text, setText] = useState('')
   const [busy, setBusy] = useState(false)
   const [sendError, setSendError] = useState('')
@@ -49,7 +52,10 @@ export default function CommentsPanel({ entry, onClose, onSignIn }) {
             comments.map((c) => (
               <div className="comment" key={c.id}>
                 <div className="comment-meta">
-                  <span className="comment-name">{c.name}</span>
+                  <span className="comment-name">
+                    {c.name}
+                    <AdminBadge show={adminUids.has(c.uid)} />
+                  </span>
                   <span className="subtext">
                     {c.createdAt ? timeAgo(c.createdAt.seconds) : 'just now'}
                   </span>

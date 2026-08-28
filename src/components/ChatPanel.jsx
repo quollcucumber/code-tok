@@ -9,11 +9,14 @@ import {
 } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { useAuth } from '../hooks/useAuth'
+import { useAdminUids } from '../hooks/useAdmin'
+import AdminBadge from './AdminBadge'
 import { chatPairId } from '../hooks/useFriends'
 import { timeAgo } from '../lib/codeforces'
 
 export default function ChatPanel({ friend, onBack, onClose, onOpenBlog }) {
   const { user } = useAuth()
+  const adminUids = useAdminUids()
   const [messages, setMessages] = useState(null)
   const [text, setText] = useState('')
   const [error, setError] = useState('')
@@ -64,7 +67,10 @@ export default function ChatPanel({ friend, onBack, onClose, onOpenBlog }) {
             <button className="btn-link" onClick={onBack}>
               ← Friends
             </button>
-            <h3 className="comments-title">{name}</h3>
+            <h3 className="comments-title">
+              {name}
+              <AdminBadge show={adminUids.has(friend.uid)} />
+            </h3>
           </div>
           <button className="modal-close" onClick={onClose} aria-label="Close chat">
             ✕

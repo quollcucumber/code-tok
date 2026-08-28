@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { doc, onSnapshot } from 'firebase/firestore'
+import { collection, doc, getDocs, onSnapshot, query, where } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { useAuth } from './useAuth'
 
@@ -30,4 +30,33 @@ export function useAdmin() {
   }, [configured, user])
 
   return { isAdmin, banned }
+}
+
+// The uids behind ADMIN_EMAILS, used to show a 🛡️ badge next to admin names.
+// Fetched once per page load and shared across components.
+let adminUidsPromise = null
+
+export function useAdminUids() {
+  const { configured } = useAuth()
+  const [uids, setUids] = useState(() => new Set())
+
+  useEffect(() => {
+    if (!configured) return
+    if (!adminUidsPromise) {
+      adminUidsPromise = getDocs(
+        query(collection(db, 'profiles'), where('email', 'in', ADMIN_EMAILS))
+      ).then((snap) => new Set(snap.docs.map((d) => d.id)))
+    }
+    let cancelled = false
+    adminUidsPromise
+      .then((s) => {
+        if (!cancelled) setUids(s)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [configured])
+
+  return uids
 }
