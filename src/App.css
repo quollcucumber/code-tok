@@ -649,6 +649,12 @@
   color: var(--accent-cyan);
 }
 
+.admin-removed {
+  flex: 0 0 auto;
+  max-height: 180px;
+  border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+}
+
 .comment-delete {
   background: none;
   border: none;

@@ -132,6 +132,10 @@ The feed works immediately with no configuration (likes/saves fall back to local
          allow read: if isAdmin() || (request.auth != null && request.auth.uid == uid);
          allow write: if isAdmin();
        }
+       match /removedBlogs/{blogId} {
+         allow read: if true;
+         allow write: if isAdmin();
+       }
      }
    }
    ```

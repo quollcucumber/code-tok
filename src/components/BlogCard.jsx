@@ -21,6 +21,7 @@ export default function BlogCard({
   onSave,
   onComments,
   onShare,
+  onRemove,
 }) {
   const [content, setContent] = useState(null)
   const [error, setError] = useState(false)
@@ -131,6 +132,12 @@ export default function BlogCard({
           <span className="rail-icon">↗️</span>
           <span className="rail-label">Open</span>
         </a>
+        {onRemove && (
+          <button className="rail-btn" onClick={onRemove} aria-label="Remove blog (admin)">
+            <span className="rail-icon">🗑️</span>
+            <span className="rail-label">Remove</span>
+          </button>
+        )}
       </aside>
     </article>
   )
