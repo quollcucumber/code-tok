@@ -21,6 +21,7 @@ const PROBLEM_EVERY = 10
 
 export default function Feed({
   reactions,
+  problemsApi,
   friends,
   groups,
   myName,
@@ -47,6 +48,7 @@ export default function Feed({
   const { removedIds, removeBlog } = useRemovedBlogs()
   const [removeError, setRemoveError] = useState('')
   const { likes, saves, error, clearError, toggleLike, toggleSave } = reactions
+  const { problems, toggleProblemSave, toggleProblemSolved } = problemsApi
 
   const kw = (keyword || '').trim().toLowerCase()
   const visible = useMemo(
@@ -223,7 +225,13 @@ export default function Feed({
       {visible.map((entry, i) => (
         <div className="card" key={entry.id} data-index={i}>
           {entry.kind === 'problem' ? (
-            <ProblemCard entry={entry} />
+            <ProblemCard
+              entry={entry}
+              saved={Boolean(problems[entry.id]?.saved)}
+              solved={Boolean(problems[entry.id]?.solved)}
+              onSave={() => toggleProblemSave(entry)}
+              onSolved={() => toggleProblemSolved(entry)}
+            />
           ) : (
           <BlogCard
             entry={entry}
