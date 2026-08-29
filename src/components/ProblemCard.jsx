@@ -1,13 +1,50 @@
+import { useMemo } from 'react'
 import { ratingColor } from '../lib/codeforces'
+import { prepareBlogHtml } from '../lib/blogHtml'
+
+function escapeHtml(text) {
+  const div = document.createElement('div')
+  div.textContent = text
+  return div.innerHTML
+}
+
+function paragraphs(text) {
+  return text
+    .split(/\n{2,}/)
+    .map((p) => `<p>${escapeHtml(p).replace(/\n/g, '<br/>')}</p>`)
+    .join('')
+}
+
+// Builds sanitized, KaTeX-rendered HTML for a problem statement in the same
+// Input/Output/Example/Note layout Codeforces uses.
+function statementHtml(entry) {
+  const s = entry.statement
+  let html = paragraphs(s.description)
+  if (s.inputFormat) html += `<h3 class="problem-section">Input</h3>${paragraphs(s.inputFormat)}`
+  if (s.outputFormat) html += `<h3 class="problem-section">Output</h3>${paragraphs(s.outputFormat)}`
+  if (s.examples?.length) {
+    html += '<h3 class="problem-section">Example</h3>'
+    for (const ex of s.examples) {
+      html += `<div class="problem-example"><pre><b>Input</b>\n${escapeHtml(
+        ex.input || ''
+      )}\n<b>Output</b>\n${escapeHtml(ex.output || '')}</pre></div>`
+    }
+  }
+  if (s.note) html += `<h3 class="problem-section">Note</h3>${paragraphs(s.note)}`
+  return prepareBlogHtml(html)
+}
 
 // A "try this problem" reel mixed into the feed every few blogs.
 export default function ProblemCard({ entry }) {
+  const content = useMemo(() => statementHtml(entry), [entry])
   return (
     <article className="card-layout">
-      <div className="card-inner problem-card">
-        <span className="problem-kicker">💡 Try this problem</span>
-        <h2 className="card-title problem-title">
-          <a href={entry.url} target="_blank" rel="noreferrer">
+      <div className="card-inner">
+        <header className="card-header">
+          <span className="problem-kicker">💡 Try this problem</span>
+        </header>
+        <h2 className="card-title">
+          <a className="problem-title-link" href={entry.url} target="_blank" rel="noreferrer">
             {entry.contestId}
             {entry.index}. {entry.name}
           </a>
@@ -18,15 +55,19 @@ export default function ProblemCard({ entry }) {
               ★ {entry.rating}
             </span>
           )}
+          {entry.timeLimit != null && <span className="problem-tag">⏱ {entry.timeLimit}s</span>}
+          {entry.memoryLimit != null && (
+            <span className="problem-tag">💾 {entry.memoryLimit}MB</span>
+          )}
           {entry.tags.map((t) => (
             <span className="problem-tag" key={t}>
               {t}
             </span>
           ))}
         </div>
-        <a className="btn-primary problem-solve" href={entry.url} target="_blank" rel="noreferrer">
-          Solve it on Codeforces ↗
-        </a>
+        <div className="card-content">
+          <div className="blog-html" dangerouslySetInnerHTML={{ __html: content }} />
+        </div>
       </div>
       <aside className="action-rail">
         <a
@@ -34,10 +75,10 @@ export default function ProblemCard({ entry }) {
           href={entry.url}
           target="_blank"
           rel="noreferrer"
-          aria-label="Open on Codeforces"
+          aria-label="Solve on Codeforces"
         >
           <span className="rail-icon">↗️</span>
-          <span className="rail-label">Open</span>
+          <span className="rail-label">Solve</span>
         </a>
       </aside>
     </article>

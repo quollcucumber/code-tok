@@ -526,13 +526,6 @@
   gap: 8px;
 }
 
-.problem-card {
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-  gap: 14px;
-}
-
 .problem-kicker {
   font-size: 13px;
   font-weight: 700;
@@ -541,26 +534,21 @@
   color: var(--text-muted);
 }
 
-.problem-title {
-  margin: 0;
-  font-size: 26px;
-}
-
-.problem-title a {
+.problem-title-link {
   color: inherit;
   text-decoration: none;
 }
 
-.problem-title a:hover {
+.problem-title-link:hover {
   text-decoration: underline;
 }
 
 .problem-meta {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
   gap: 8px;
   align-items: center;
+  margin-bottom: 12px;
 }
 
 .problem-rating {
@@ -577,11 +565,19 @@
   font-size: 12px;
 }
 
-.problem-solve {
-  display: inline-block;
-  margin-top: 8px;
-  padding: 11px 22px;
-  text-decoration: none;
+.problem-section {
+  margin: 18px 0 8px;
+  font-size: 16px;
+}
+
+.problem-example pre {
+  background: var(--ghost-bg);
+  border: 1px solid var(--ghost-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  font-size: 13px;
 }
 
 .rewatch-badge {
