@@ -115,12 +115,14 @@ export default function Feed({
     if (visible.length - activeIndex <= LOAD_AHEAD) loadMore()
   }, [status, activeIndex, visible.length, loadingMore, loadMore])
 
+  // Rewatch cards are a last resort: only shown once every unseen blog has
+  // been exhausted (nothing left to load), never while more can be fetched.
   useEffect(() => {
-    if (status !== 'ready') return
+    if (status !== 'ready' || loadingMore || nextBeforeIdRef.current != null) return
     if (visible.length - activeIndex <= 2 && rewatchPoolRef.current.length > 0) {
       addEntries(rewatchPoolRef.current.splice(0, 3))
     }
-  }, [status, activeIndex, visible.length, addEntries])
+  }, [status, activeIndex, visible.length, loadingMore, addEntries])
 
   useEffect(() => {
     const entry = visible[activeIndex]
