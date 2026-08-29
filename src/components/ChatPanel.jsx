@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import {
   addDoc,
   collection,
+  deleteDoc,
+  doc,
   onSnapshot,
   orderBy,
   query,
@@ -74,6 +76,15 @@ export default function ChatPanel({ friend, onBack, onClose, onOpenBlog }) {
     }
   }
 
+  async function deleteMessage(id) {
+    setError('')
+    try {
+      await deleteDoc(doc(db, 'chats', pairId, 'messages', id))
+    } catch (err) {
+      setError(`Couldn't delete: ${err.message}`)
+    }
+  }
+
   const name = friend.profile?.name || 'friend'
 
   return (
@@ -121,6 +132,15 @@ export default function ChatPanel({ friend, onBack, onClose, onOpenBlog }) {
                 )}
                 <span className="subtext">
                   {m.createdAt ? timeAgo(m.createdAt.seconds) : 'sending…'}
+                  {m.from === user.uid && (
+                    <button
+                      className="comment-delete"
+                      onClick={() => deleteMessage(m.id)}
+                      aria-label="Delete message"
+                    >
+                      Delete
+                    </button>
+                  )}
                 </span>
               </div>
             ))

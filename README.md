@@ -91,6 +91,9 @@ The feed works immediately with no configuration (likes/saves fall back to local
            && (!('image' in request.resource.data)
              || (request.resource.data.image is string
                && request.resource.data.image.size() <= 500000));
+         allow delete: if request.auth != null
+           && pairId.split('_').hasAny([request.auth.uid])
+           && request.auth.uid == resource.data.from;
        }
        match /blogLikes/{blogId}/likers/{uid} {
          allow read: if true;
@@ -122,6 +125,8 @@ The feed works immediately with no configuration (likes/saves fall back to local
            && (!('image' in request.resource.data)
              || (request.resource.data.image is string
                && request.resource.data.image.size() <= 500000));
+         allow delete: if isAdmin()
+           || (request.auth != null && request.auth.uid == resource.data.from);
        }
        match /bans/{uid} {
          allow read: if isAdmin() || (request.auth != null && request.auth.uid == uid);

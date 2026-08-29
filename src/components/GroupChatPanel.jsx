@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
   getDoc,
   onSnapshot,
@@ -11,7 +12,7 @@ import {
 } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { useAuth } from '../hooks/useAuth'
-import { useAdminUids } from '../hooks/useAdmin'
+import { useAdmin, useAdminUids } from '../hooks/useAdmin'
 import AdminBadge from './AdminBadge'
 import { IMAGE_PLACEHOLDER, fileToChatImage } from '../hooks/useProfile'
 import { timeAgo } from '../lib/codeforces'
@@ -27,6 +28,7 @@ export default function GroupChatPanel({
   onOpenBlog,
 }) {
   const { user } = useAuth()
+  const { isAdmin } = useAdmin()
   const adminUids = useAdminUids()
   const [messages, setMessages] = useState(null)
   const [text, setText] = useState('')
@@ -116,6 +118,15 @@ export default function GroupChatPanel({
       setError(`Couldn't send: ${err.message}`)
     } finally {
       setBusy(false)
+    }
+  }
+
+  async function deleteMessage(id) {
+    setError('')
+    try {
+      await deleteDoc(doc(db, 'groups', group.id, 'messages', id))
+    } catch (err) {
+      setError(`Couldn't delete: ${err.message}`)
     }
   }
 
@@ -222,6 +233,15 @@ export default function GroupChatPanel({
                 )}
                 <span className="subtext">
                   {m.createdAt ? timeAgo(m.createdAt.seconds) : 'sending…'}
+                  {(m.from === user.uid || isAdmin) && (
+                    <button
+                      className="comment-delete"
+                      onClick={() => deleteMessage(m.id)}
+                      aria-label="Delete message"
+                    >
+                      Delete
+                    </button>
+                  )}
                 </span>
               </div>
             ))
