@@ -74,6 +74,7 @@ export default function FriendsPanel({
   friendsApi,
   groupsApi,
   unreadUids,
+  unreadGroupIds,
   onOpenChat,
   onOpenGroup,
   onClose,
@@ -191,6 +192,7 @@ export default function FriendsPanel({
               <div className="friend-row" key={g.id}>
                 <span className="friend-name">
                   {g.name} <span className="subtext">({g.members.length})</span>
+                  {unreadGroupIds.has(g.id) && <span className="unread-dot" />}
                 </span>
                 <button className="btn-primary friend-action" onClick={() => onOpenGroup(g)}>
                   Open
