@@ -7,22 +7,35 @@ import AdminBadge from './AdminBadge'
 
 const MEDALS = ['🥇', '🥈', '🥉']
 
+const BOARDS = {
+  seen: { field: 'seenCount', label: 'Reels read', empty: 'No reels read yet — start scrolling!' },
+  solved: {
+    field: 'solvedCount',
+    label: 'Problems solved',
+    empty: 'No problems solved yet — mark one solved on a problem reel!',
+  },
+}
+
 export default function Leaderboard({ onSignIn }) {
   const { user, configured } = useAuth()
+  const [board, setBoard] = useState('seen')
   const [rows, setRows] = useState(null)
   const adminUids = useAdminUids()
   const [error, setError] = useState(false)
+  const { field, empty } = BOARDS[board]
 
   useEffect(() => {
     if (!configured) return
     let cancelled = false
-    getDocs(query(collection(db, 'profiles'), orderBy('seenCount', 'desc'), limit(25)))
+    setRows(null)
+    setError(false)
+    getDocs(query(collection(db, 'profiles'), orderBy(field, 'desc'), limit(25)))
       .then((snap) => {
         if (cancelled) return
         setRows(
           snap.docs
             .map((d) => ({ uid: d.id, ...d.data() }))
-            .filter((p) => (p.seenCount || 0) > 0)
+            .filter((p) => (p[field] || 0) > 0)
         )
       })
       .catch(() => {
@@ -31,12 +44,24 @@ export default function Leaderboard({ onSignIn }) {
     return () => {
       cancelled = true
     }
-  }, [configured])
+  }, [configured, field])
 
   return (
     <div className="saved-view">
       <h2 className="saved-title">🏆 Leaderboard</h2>
-      <p className="subtext">Ranked by reels read</p>
+      <div className="board-tabs">
+        {Object.entries(BOARDS).map(([key, b]) => (
+          <button
+            key={key}
+            className={`btn-ghost ${board === key ? 'board-tab-active' : ''}`}
+            onClick={() => setBoard(key)}
+            aria-pressed={board === key}
+          >
+            {b.label}
+          </button>
+        ))}
+      </div>
+      <p className="subtext">Ranked by {BOARDS[board].label.toLowerCase()}</p>
       {!configured ? (
         <p className="content-note">The leaderboard needs Firebase configured.</p>
       ) : error ? (
@@ -44,7 +69,7 @@ export default function Leaderboard({ onSignIn }) {
       ) : rows == null ? (
         <p className="content-note">Loading leaderboard…</p>
       ) : rows.length === 0 ? (
-        <p className="content-note">No reels read yet — start scrolling!</p>
+        <p className="content-note">{empty}</p>
       ) : (
         <ol className="board-list">
           {rows.map((p, i) => (
@@ -65,7 +90,7 @@ export default function Leaderboard({ onSignIn }) {
                 <AdminBadge show={adminUids.has(p.uid)} />
                 {user && p.uid === user.uid ? ' (you)' : ''}
               </span>
-              <span className="board-count">{p.seenCount}</span>
+              <span className="board-count">{p[field]}</span>
             </li>
           ))}
         </ol>
@@ -75,7 +100,7 @@ export default function Leaderboard({ onSignIn }) {
           <button className="btn-link" onClick={onSignIn}>
             Sign in
           </button>{' '}
-          to appear on the leaderboard — reels you read while signed out only count locally.
+          to appear on the leaderboard — activity while signed out only counts locally.
         </p>
       )}
     </div>

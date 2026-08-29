@@ -35,7 +35,7 @@ function statementHtml(entry) {
 }
 
 // A "try this problem" reel mixed into the feed every few blogs.
-export default function ProblemCard({ entry }) {
+export default function ProblemCard({ entry, saved, solved, onSave, onSolved }) {
   const content = useMemo(() => statementHtml(entry), [entry])
   return (
     <article className="card-layout">
@@ -70,15 +70,33 @@ export default function ProblemCard({ entry }) {
         </div>
       </div>
       <aside className="action-rail">
+        <button
+          className={`rail-btn ${solved ? 'rail-btn-active' : ''}`}
+          onClick={onSolved}
+          aria-label={solved ? 'Mark as unsolved' : 'Mark as solved'}
+          aria-pressed={solved}
+        >
+          <span className="rail-icon">{solved ? '✅' : '☑️'}</span>
+          <span className="rail-label">{solved ? 'Solved' : 'Solve it'}</span>
+        </button>
+        <button
+          className={`rail-btn ${saved ? 'rail-btn-active' : ''}`}
+          onClick={onSave}
+          aria-label={saved ? 'Remove from saved' : 'Save problem'}
+          aria-pressed={saved}
+        >
+          <span className="rail-icon">{saved ? '⭐' : '☆'}</span>
+          <span className="rail-label">{saved ? 'Saved' : 'Save'}</span>
+        </button>
         <a
           className="rail-btn"
           href={entry.url}
           target="_blank"
           rel="noreferrer"
-          aria-label="Solve on Codeforces"
+          aria-label="Open on Codeforces"
         >
           <span className="rail-icon">↗️</span>
-          <span className="rail-label">Solve</span>
+          <span className="rail-label">Open</span>
         </a>
       </aside>
     </article>

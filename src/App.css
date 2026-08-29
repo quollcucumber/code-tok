@@ -595,6 +595,17 @@
 }
 
 /* Leaderboard */
+.board-tabs {
+  display: flex;
+  gap: 8px;
+  margin: 10px 0 4px;
+}
+
+.board-tab-active {
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+}
+
 .board-list {
   list-style: none;
   margin: 16px 0 0;

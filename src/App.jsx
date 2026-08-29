@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { AuthProvider } from './hooks/useAuth'
 import { useReactions } from './hooks/useReactions'
+import { useProblems } from './hooks/useProblems'
 import { useFriends } from './hooks/useFriends'
 import { useProfile } from './hooks/useProfile'
 import { useChatAlerts } from './hooks/useChatAlerts'
@@ -47,6 +48,7 @@ function Main() {
     () => localStorage.getItem(ANNOUNCEMENTS_KEY) === '1'
   )
   const reactions = useReactions()
+  const problemsApi = useProblems()
   const friendsApi = useFriends()
   const groupsApi = useGroups()
   const { isAdmin, banned } = useAdmin()
@@ -125,6 +127,7 @@ function Main() {
       ) : view === 'feed' ? (
         <Feed
           reactions={reactions}
+          problemsApi={problemsApi}
           friends={friendsApi.friends}
           groups={groupsApi.groups}
           myName={profile?.name}
@@ -136,6 +139,7 @@ function Main() {
       ) : view === 'saved' ? (
         <SavedList
           reactions={reactions}
+          problemsApi={problemsApi}
           friends={friendsApi.friends}
           onSignIn={() => setShowAuth(true)}
           onBrowse={() => setView('feed')}
