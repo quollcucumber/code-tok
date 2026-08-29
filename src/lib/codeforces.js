@@ -182,45 +182,79 @@ export function fetchBlogContent(blogEntryId) {
   return contentCache.get(blogEntryId)
 }
 
-// Random problems for the every-few-reels problem cards. The full problemset
-// (~11k problems) is fetched once per visit and shuffled into a deal-out pool.
-let problemPool = null
-let problemPoolPromise = null
+// Random problems (with full statements) for the every-few-reels problem
+// cards. The Codeforces API has no statement endpoint and the site blocks
+// cross-origin reads, so statements come from the open-r1/codeforces dataset
+// (~9.5k problems, CORS-enabled). A small buffer of random problems is kept
+// topped up in the background so cards can be dealt out synchronously.
+const PROBLEMS_API =
+  'https://datasets-server.huggingface.co/rows?dataset=open-r1%2Fcodeforces&config=default&split=train'
+const PROBLEM_BUFFER_SIZE = 3
+const problemBuffer = []
+let problemTotal = null
+let problemRefill = null
 
-export function preloadProblems() {
-  if (!problemPoolPromise) {
-    problemPoolPromise = throttledFetch(`${API_BASE}/problemset.problems`)
-      .then(({ problems }) => {
-        const pool = problems.filter((p) => p.contestId && p.index)
-        for (let i = pool.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1))
-          ;[pool[i], pool[j]] = [pool[j], pool[i]]
-        }
-        problemPool = pool
-        return pool
-      })
-      .catch(() => {
-        problemPoolPromise = null
-        return null
-      })
+async function fetchRandomProblemRow() {
+  if (problemTotal == null) {
+    const res = await fetch(`${PROBLEMS_API}&offset=0&length=1`)
+    const json = await res.json()
+    if (!json.num_rows_total) throw new Error('problem dataset unavailable')
+    problemTotal = json.num_rows_total
   }
-  return problemPoolPromise
-}
-
-// Pops a random problem from the pool, or null if it hasn't loaded yet.
-export function takeRandomProblem() {
-  if (!problemPool || problemPool.length === 0) return null
-  const p = problemPool.pop()
+  const offset = Math.floor(Math.random() * problemTotal)
+  const res = await fetch(`${PROBLEMS_API}&offset=${offset}&length=1`)
+  const json = await res.json()
+  const r = json.rows?.[0]?.row
+  if (!r || !r.contest_id || !r.index || !r.description) return null
   return {
     kind: 'problem',
-    id: `problem-${p.contestId}${p.index}`,
-    contestId: p.contestId,
-    index: p.index,
-    name: p.name,
-    rating: p.rating ?? null,
-    tags: p.tags || [],
-    url: `https://codeforces.com/problemset/problem/${p.contestId}/${p.index}`,
+    id: `problem-${r.contest_id}${r.index}`,
+    contestId: r.contest_id,
+    index: r.index,
+    name: r.title,
+    rating: r.rating ?? null,
+    tags: r.tags || [],
+    timeLimit: r.time_limit,
+    memoryLimit: r.memory_limit,
+    statement: {
+      description: r.description,
+      inputFormat: r.input_format,
+      outputFormat: r.output_format,
+      note: r.note,
+      examples: (r.examples || []).slice(0, 2),
+    },
+    url: `https://codeforces.com/problemset/problem/${r.contest_id}/${r.index}`,
   }
+}
+
+function refillProblems() {
+  if (problemRefill) return problemRefill
+  problemRefill = (async () => {
+    let attempts = 0
+    while (problemBuffer.length < PROBLEM_BUFFER_SIZE && attempts < PROBLEM_BUFFER_SIZE * 3) {
+      attempts += 1
+      try {
+        const p = await fetchRandomProblemRow()
+        if (p) problemBuffer.push(p)
+      } catch {
+        break // network hiccup; the next take/preload retries
+      }
+    }
+  })().finally(() => {
+    problemRefill = null
+  })
+  return problemRefill
+}
+
+export function preloadProblems() {
+  refillProblems()
+}
+
+// Pops a buffered random problem, or null if none has loaded yet.
+export function takeRandomProblem() {
+  const p = problemBuffer.shift() || null
+  refillProblems()
+  return p
 }
 
 const userCache = new Map()
