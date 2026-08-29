@@ -5,7 +5,11 @@ import { useAuth } from './useAuth'
 
 // The admin accounts. Enforcement lives in the Firestore rules (which check
 // request.auth.token.email); this list only controls UI visibility.
-export const ADMIN_EMAILS = ['rcodetok@greatcactus.org', 'justinzhu2011@gmail.com']
+export const ADMIN_EMAILS = [
+  'rcodetok@greatcactus.org',
+  'justinzhu2011@gmail.com',
+  'teamcuddlepie@gmail.com',
+]
 
 // Bans are docs at bans/{uid}, written by the admin. Banned users can still
 // browse but every write (comments, chats, likes…) is rejected by the rules.

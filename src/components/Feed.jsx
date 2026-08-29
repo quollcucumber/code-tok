@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { fetchOlderBlogEntries, fetchRecentBlogEntries, fetchUsers, isAnnouncement } from '../lib/codeforces'
 import { useSeen } from '../hooks/useSeen'
+import { useAdmin } from '../hooks/useAdmin'
+import { useRemovedBlogs } from '../hooks/useRemovedBlogs'
 import BlogCard from './BlogCard'
 import CommentsPanel from './CommentsPanel'
 import SharePanel from './SharePanel'
@@ -31,6 +33,9 @@ export default function Feed({
   const nextBeforeIdRef = useRef(null)
   const loadingMoreRef = useRef(false)
   const { isSeen, markSeen, loaded: seenLoaded } = useSeen()
+  const { isAdmin } = useAdmin()
+  const { removedIds, removeBlog } = useRemovedBlogs()
+  const [removeError, setRemoveError] = useState('')
   const { likes, saves, error, clearError, toggleLike, toggleSave } = reactions
 
   const kw = (keyword || '').trim().toLowerCase()
@@ -38,13 +43,14 @@ export default function Feed({
     () =>
       entries.filter(
         (e) =>
+          !removedIds.has(e.id) &&
           (minScore == null || e.rating >= minScore) &&
           (!hideAnnouncements || !isAnnouncement(e)) &&
           (kw === '' ||
             e.title.toLowerCase().includes(kw) ||
             (e.tags || []).some((t) => t.toLowerCase().includes(kw)))
       ),
-    [entries, minScore, hideAnnouncements, kw]
+    [entries, removedIds, minScore, hideAnnouncements, kw]
   )
 
   const addEntries = useCallback(async (list) => {
@@ -168,10 +174,17 @@ export default function Feed({
 
   return (
     <div className="feed" ref={containerRef} tabIndex={-1}>
-      {error && (
+      {(error || removeError) && (
         <div className="toast" role="alert">
-          <span>{error}</span>
-          <button className="toast-close" onClick={clearError} aria-label="Dismiss">
+          <span>{error || removeError}</span>
+          <button
+            className="toast-close"
+            onClick={() => {
+              clearError()
+              setRemoveError('')
+            }}
+            aria-label="Dismiss"
+          >
             ✕
           </button>
         </div>
@@ -189,6 +202,14 @@ export default function Feed({
             onSave={() => toggleSave(entry)}
             onComments={() => setCommentsFor(entry)}
             onShare={() => setShareFor(entry)}
+            onRemove={
+              isAdmin
+                ? () =>
+                    removeBlog(entry).catch((err) =>
+                      setRemoveError(`Couldn't remove: ${err.message}`)
+                    )
+                : null
+            }
           />
         </div>
       ))}

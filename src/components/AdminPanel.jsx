@@ -14,12 +14,17 @@ export default function AdminPanel({ onClose }) {
   const { user } = useAuth()
   const [users, setUsers] = useState(null)
   const [bans, setBans] = useState({})
+  const [removed, setRemoved] = useState([])
   const [error, setError] = useState('')
 
   useEffect(() => {
     let cancelled = false
-    Promise.all([getDocs(collection(db, 'profiles')), getDocs(collection(db, 'bans'))])
-      .then(([profileSnap, banSnap]) => {
+    Promise.all([
+      getDocs(collection(db, 'profiles')),
+      getDocs(collection(db, 'bans')),
+      getDocs(collection(db, 'removedBlogs')),
+    ])
+      .then(([profileSnap, banSnap, removedSnap]) => {
         if (cancelled) return
         setUsers(
           profileSnap.docs
@@ -27,6 +32,7 @@ export default function AdminPanel({ onClose }) {
             .sort((a, b) => (b.seenCount || 0) - (a.seenCount || 0))
         )
         setBans(Object.fromEntries(banSnap.docs.map((d) => [d.id, true])))
+        setRemoved(removedSnap.docs.map((d) => ({ id: d.id, ...d.data() })))
       })
       .catch((err) => {
         if (!cancelled) setError(`Couldn't load admin data: ${err.message}`)
@@ -64,6 +70,16 @@ export default function AdminPanel({ onClose }) {
     }
   }
 
+  async function restore(blogId) {
+    setError('')
+    try {
+      await deleteDoc(doc(db, 'removedBlogs', blogId))
+      setRemoved((prev) => prev.filter((b) => b.id !== blogId))
+    } catch (err) {
+      setError(`Couldn't restore: ${err.message}`)
+    }
+  }
+
   const bannedCount = Object.keys(bans).length
   const totalReels = (users || []).reduce((sum, u) => sum + (u.seenCount || 0), 0)
 
@@ -85,7 +101,23 @@ export default function AdminPanel({ onClose }) {
               <span>{users.length} users</span>
               <span>{totalReels} reels read</span>
               <span>{bannedCount} banned</span>
+              <span>{removed.length} blogs removed</span>
             </div>
+            {removed.length > 0 && (
+              <div className="comments-list friends-list admin-removed">
+                {removed.map((b) => (
+                  <div className="friend-row" key={b.id}>
+                    <span className="friend-name admin-user">
+                      {b.title || `Blog #${b.id}`}
+                      <span className="subtext">by {b.authorHandle || 'unknown'} · removed</span>
+                    </span>
+                    <button className="btn-primary friend-action" onClick={() => restore(b.id)}>
+                      Restore
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="comments-list friends-list">
               {users.map((u) => (
                 <div className="friend-row" key={u.uid}>
