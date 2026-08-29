@@ -182,6 +182,47 @@ export function fetchBlogContent(blogEntryId) {
   return contentCache.get(blogEntryId)
 }
 
+// Random problems for the every-few-reels problem cards. The full problemset
+// (~11k problems) is fetched once per visit and shuffled into a deal-out pool.
+let problemPool = null
+let problemPoolPromise = null
+
+export function preloadProblems() {
+  if (!problemPoolPromise) {
+    problemPoolPromise = throttledFetch(`${API_BASE}/problemset.problems`)
+      .then(({ problems }) => {
+        const pool = problems.filter((p) => p.contestId && p.index)
+        for (let i = pool.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1))
+          ;[pool[i], pool[j]] = [pool[j], pool[i]]
+        }
+        problemPool = pool
+        return pool
+      })
+      .catch(() => {
+        problemPoolPromise = null
+        return null
+      })
+  }
+  return problemPoolPromise
+}
+
+// Pops a random problem from the pool, or null if it hasn't loaded yet.
+export function takeRandomProblem() {
+  if (!problemPool || problemPool.length === 0) return null
+  const p = problemPool.pop()
+  return {
+    kind: 'problem',
+    id: `problem-${p.contestId}${p.index}`,
+    contestId: p.contestId,
+    index: p.index,
+    name: p.name,
+    rating: p.rating ?? null,
+    tags: p.tags || [],
+    url: `https://codeforces.com/problemset/problem/${p.contestId}/${p.index}`,
+  }
+}
+
 const userCache = new Map()
 
 export async function fetchUsers(handles) {
