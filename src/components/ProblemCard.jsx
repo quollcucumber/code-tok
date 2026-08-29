@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { ratingColor } from '../lib/codeforces'
-import { prepareBlogHtml } from '../lib/blogHtml'
+import { prepareProblemHtml } from '../lib/blogHtml'
 
 function escapeHtml(text) {
   const div = document.createElement('div')
@@ -31,7 +31,7 @@ function statementHtml(entry) {
     }
   }
   if (s.note) html += `<h3 class="problem-section">Note</h3>${paragraphs(s.note)}`
-  return prepareBlogHtml(html)
+  return prepareProblemHtml(html)
 }
 
 // A "try this problem" reel mixed into the feed every few blogs.
