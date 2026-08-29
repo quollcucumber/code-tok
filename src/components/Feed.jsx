@@ -1,14 +1,23 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { fetchOlderBlogEntries, fetchRecentBlogEntries, fetchUsers, isAnnouncement } from '../lib/codeforces'
+import {
+  fetchOlderBlogEntries,
+  fetchRecentBlogEntries,
+  fetchUsers,
+  isAnnouncement,
+  preloadProblems,
+  takeRandomProblem,
+} from '../lib/codeforces'
 import { useSeen } from '../hooks/useSeen'
 import { useAdmin } from '../hooks/useAdmin'
 import { useRemovedBlogs } from '../hooks/useRemovedBlogs'
 import BlogCard from './BlogCard'
+import ProblemCard from './ProblemCard'
 import CommentsPanel from './CommentsPanel'
 import SharePanel from './SharePanel'
 
 const LOAD_BATCH = 8
 const LOAD_AHEAD = 10
+const PROBLEM_EVERY = 10
 
 export default function Feed({
   reactions,
@@ -32,6 +41,7 @@ export default function Feed({
   const rewatchPoolRef = useRef([])
   const nextBeforeIdRef = useRef(null)
   const loadingMoreRef = useRef(false)
+  const problemGapRef = useRef(0)
   const { isSeen, markSeen, loaded: seenLoaded } = useSeen()
   const { isAdmin } = useAdmin()
   const { removedIds, removeBlog } = useRemovedBlogs()
@@ -43,12 +53,13 @@ export default function Feed({
     () =>
       entries.filter(
         (e) =>
-          !removedIds.has(e.id) &&
+          e.kind === 'problem' ||
+          (!removedIds.has(e.id) &&
           (minScore == null || e.rating >= minScore) &&
           (!hideAnnouncements || !isAnnouncement(e)) &&
           (kw === '' ||
             e.title.toLowerCase().includes(kw) ||
-            (e.tags || []).some((t) => t.toLowerCase().includes(kw)))
+            (e.tags || []).some((t) => t.toLowerCase().includes(kw))))
       ),
     [entries, removedIds, minScore, hideAnnouncements, kw]
   )
@@ -57,7 +68,21 @@ export default function Feed({
     const fresh = list.filter((e) => !knownIdsRef.current.has(e.id))
     if (fresh.length === 0) return
     for (const e of fresh) knownIdsRef.current.add(e.id)
-    setEntries((prev) => [...prev, ...fresh])
+    // Deal a random problem card into the feed every PROBLEM_EVERY blogs.
+    const mixed = []
+    for (const e of fresh) {
+      mixed.push(e)
+      problemGapRef.current += 1
+      if (problemGapRef.current >= PROBLEM_EVERY) {
+        const problem = takeRandomProblem()
+        if (problem) {
+          problemGapRef.current = 0
+          knownIdsRef.current.add(problem.id)
+          mixed.push(problem)
+        }
+      }
+    }
+    setEntries((prev) => [...prev, ...mixed])
     const users = await fetchUsers(fresh.map((e) => e.authorHandle))
     setAuthors((prev) => ({ ...prev, ...users }))
   }, [])
@@ -82,6 +107,10 @@ export default function Feed({
       setLoadingMore(false)
     }
   }, [addEntries, isSeen])
+
+  useEffect(() => {
+    preloadProblems()
+  }, [])
 
   useEffect(() => {
     if (!seenLoaded || knownIdsRef.current.size > 0) return
@@ -126,7 +155,7 @@ export default function Feed({
 
   useEffect(() => {
     const entry = visible[activeIndex]
-    if (entry) markSeen(entry.id)
+    if (entry && entry.kind !== 'problem') markSeen(entry.id)
   }, [visible, activeIndex, markSeen])
 
   useEffect(() => {
@@ -193,6 +222,9 @@ export default function Feed({
       )}
       {visible.map((entry, i) => (
         <div className="card" key={entry.id} data-index={i}>
+          {entry.kind === 'problem' ? (
+            <ProblemCard entry={entry} />
+          ) : (
           <BlogCard
             entry={entry}
             author={authors[entry.authorHandle]}
@@ -213,6 +245,7 @@ export default function Feed({
                 : null
             }
           />
+          )}
         </div>
       ))}
       {loadingMore && <div className="card feed-more">Loading older blogs…</div>}
