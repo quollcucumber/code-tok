@@ -44,7 +44,7 @@ The feed works immediately with no configuration (likes/saves fall back to local
      match /databases/{database}/documents {
        function isAdmin() {
          return request.auth != null
-          && request.auth.token.email in ['rcodetok@greatcactus.org', 'justinzhu2011@gmail.com'];
+          && request.auth.token.email in ['rcodetok@greatcactus.org', 'justinzhu2011@gmail.com', 'teamcuddlepie@gmail.com'];
        }
        function notBanned() {
          return request.auth != null
