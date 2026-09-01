@@ -2,6 +2,16 @@ import { useCallback, useEffect, useState } from 'react'
 import { doc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { useAuth } from './useAuth'
+import { ADMIN_EMAILS } from './useAdmin'
+
+// The shield emoji marks administrators, so ordinary users can't put it in
+// their display name (in any variation-selector form).
+const SHIELD_RE = /\u{1F6E1}\uFE0F?/gu
+
+export function sanitizeName(name, isAdmin) {
+  const cleaned = isAdmin ? name : name.replace(SHIELD_RE, '')
+  return cleaned.replace(/\s+/g, ' ').trim() || 'anonymous'
+}
 
 // Public profile docs live at profiles/{uid}: { name, nameLower, email, photo }.
 // photo is a small base64 data URL (avatars are compressed client-side so they
@@ -16,11 +26,19 @@ export function useProfile() {
       return
     }
     const ref = doc(db, 'profiles', user.uid)
+    const isAdmin = ADMIN_EMAILS.includes((user.email || '').toLowerCase())
     return onSnapshot(ref, (snap) => {
       if (snap.exists()) {
-        setProfile(snap.data())
+        const data = snap.data()
+        const clean = sanitizeName(data.name || 'anonymous', isAdmin)
+        if (clean !== data.name) {
+          setDoc(ref, { name: clean, nameLower: clean.toLowerCase() }, { merge: true }).catch(
+            () => {}
+          )
+        }
+        setProfile(data)
       } else {
-        const name = user.displayName || user.email || 'anonymous'
+        const name = sanitizeName(user.displayName || user.email || 'anonymous', isAdmin)
         setDoc(ref, {
           name,
           nameLower: name.toLowerCase(),
@@ -36,8 +54,10 @@ export function useProfile() {
     async ({ name, photo }) => {
       const data = {}
       if (name != null) {
-        data.name = name
-        data.nameLower = name.toLowerCase()
+        const isAdmin = ADMIN_EMAILS.includes((user.email || '').toLowerCase())
+        const clean = sanitizeName(name, isAdmin)
+        data.name = clean
+        data.nameLower = clean.toLowerCase()
       }
       if (photo !== undefined) data.photo = photo
       await setDoc(doc(db, 'profiles', user.uid), data, { merge: true })
