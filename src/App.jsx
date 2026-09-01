@@ -24,12 +24,18 @@ const FILTER_KEY = 'codetok-min-score'
 const THEME_KEY = 'codetok-theme'
 const ANNOUNCEMENTS_KEY = 'codetok-hide-announcements'
 const KEYWORD_KEY = 'codetok-keyword'
+const PROBLEM_MIN_KEY = 'codetok-problem-min-rating'
+const PROBLEM_MAX_KEY = 'codetok-problem-max-rating'
 
-function readMinScore() {
-  const raw = localStorage.getItem(FILTER_KEY)
+function readStoredNumber(key) {
+  const raw = localStorage.getItem(key)
   if (raw == null || raw === '') return null
   const n = Number(raw)
   return Number.isFinite(n) ? n : null
+}
+
+function readMinScore() {
+  return readStoredNumber(FILTER_KEY)
 }
 
 function Main() {
@@ -43,6 +49,12 @@ function Main() {
   const [view, setView] = useState('feed')
   const [minScore, setMinScore] = useState(readMinScore)
   const [keyword, setKeyword] = useState(() => localStorage.getItem(KEYWORD_KEY) || '')
+  const [problemMinRating, setProblemMinRating] = useState(() =>
+    readStoredNumber(PROBLEM_MIN_KEY)
+  )
+  const [problemMaxRating, setProblemMaxRating] = useState(() =>
+    readStoredNumber(PROBLEM_MAX_KEY)
+  )
   const [theme, setTheme] = useState(() => localStorage.getItem(THEME_KEY) || 'dark')
   const [hideAnnouncements, setHideAnnouncements] = useState(
     () => localStorage.getItem(ANNOUNCEMENTS_KEY) === '1'
@@ -79,6 +91,16 @@ function Main() {
     else localStorage.removeItem(KEYWORD_KEY)
   }, [keyword])
 
+  useEffect(() => {
+    if (problemMinRating == null) localStorage.removeItem(PROBLEM_MIN_KEY)
+    else localStorage.setItem(PROBLEM_MIN_KEY, String(problemMinRating))
+  }, [problemMinRating])
+
+  useEffect(() => {
+    if (problemMaxRating == null) localStorage.removeItem(PROBLEM_MAX_KEY)
+    else localStorage.setItem(PROBLEM_MAX_KEY, String(problemMaxRating))
+  }, [problemMaxRating])
+
   function openSharedBlog(blog) {
     setReadingBlog(blog)
     setChatFriend(null)
@@ -104,6 +126,10 @@ function Main() {
         onHideAnnouncementsChange={setHideAnnouncements}
         keyword={keyword}
         onKeywordChange={setKeyword}
+        problemMinRating={problemMinRating}
+        onProblemMinRatingChange={setProblemMinRating}
+        problemMaxRating={problemMaxRating}
+        onProblemMaxRatingChange={setProblemMaxRating}
         isAdmin={isAdmin}
         onAdminClick={() => setShowAdmin(true)}
       />
@@ -134,6 +160,8 @@ function Main() {
           minScore={minScore}
           hideAnnouncements={hideAnnouncements}
           keyword={keyword}
+          problemMinRating={problemMinRating}
+          problemMaxRating={problemMaxRating}
           onSignIn={() => setShowAuth(true)}
         />
       ) : view === 'saved' ? (

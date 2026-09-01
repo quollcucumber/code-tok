@@ -111,6 +111,21 @@
   border-color: #fe2c55;
 }
 
+.filter-range {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.filter-range .filter-input {
+  width: 100%;
+  min-width: 0;
+}
+
+.filter-range-sep {
+  color: var(--text-muted);
+}
+
 .filter-check {
   display: flex;
   align-items: center;

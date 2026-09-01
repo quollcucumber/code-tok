@@ -190,9 +190,28 @@ export function fetchBlogContent(blogEntryId) {
 const PROBLEMS_API =
   'https://datasets-server.huggingface.co/rows?dataset=open-r1%2Fcodeforces&config=default&split=train'
 const PROBLEM_BUFFER_SIZE = 3
+const PROBLEM_FETCH_LENGTH = 20
 const problemBuffer = []
 let problemTotal = null
 let problemRefill = null
+let problemRange = { min: null, max: null }
+
+export function problemRatingMatches(rating, range = problemRange) {
+  if (range.min == null && range.max == null) return true
+  if (rating == null) return false
+  if (range.min != null && rating < range.min) return false
+  if (range.max != null && rating > range.max) return false
+  return true
+}
+
+export function setProblemRatingRange(min, max) {
+  if (min === problemRange.min && max === problemRange.max) return
+  problemRange = { min, max }
+  for (let i = problemBuffer.length - 1; i >= 0; i--) {
+    if (!problemRatingMatches(problemBuffer[i].rating)) problemBuffer.splice(i, 1)
+  }
+  refillProblems()
+}
 
 async function fetchRandomProblemRow() {
   if (problemTotal == null) {
@@ -201,11 +220,23 @@ async function fetchRandomProblemRow() {
     if (!json.num_rows_total) throw new Error('problem dataset unavailable')
     problemTotal = json.num_rows_total
   }
-  const offset = Math.floor(Math.random() * problemTotal)
-  const res = await fetch(`${PROBLEMS_API}&offset=${offset}&length=1`)
+  const offset = Math.floor(
+    Math.random() * Math.max(1, problemTotal - PROBLEM_FETCH_LENGTH)
+  )
+  const res = await fetch(`${PROBLEMS_API}&offset=${offset}&length=${PROBLEM_FETCH_LENGTH}`)
   const json = await res.json()
-  const r = json.rows?.[0]?.row
-  if (!r || !r.contest_id || !r.index || !r.description) return null
+  const candidates = (json.rows || [])
+    .map((row) => row.row)
+    .filter(
+      (r) =>
+        r &&
+        r.contest_id &&
+        r.index &&
+        r.description &&
+        problemRatingMatches(r.rating ?? null)
+    )
+  const r = candidates[Math.floor(Math.random() * candidates.length)]
+  if (!r) return null
   return {
     kind: 'problem',
     id: `problem-${r.contest_id}${r.index}`,

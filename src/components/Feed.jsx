@@ -5,6 +5,8 @@ import {
   fetchUsers,
   isAnnouncement,
   preloadProblems,
+  problemRatingMatches,
+  setProblemRatingRange,
   takeRandomProblem,
 } from '../lib/codeforces'
 import { useSeen } from '../hooks/useSeen'
@@ -28,6 +30,8 @@ export default function Feed({
   minScore,
   hideAnnouncements,
   keyword,
+  problemMinRating,
+  problemMaxRating,
   onSignIn,
 }) {
   const [entries, setEntries] = useState([])
@@ -53,17 +57,17 @@ export default function Feed({
   const kw = (keyword || '').trim().toLowerCase()
   const visible = useMemo(
     () =>
-      entries.filter(
-        (e) =>
-          e.kind === 'problem' ||
-          (!removedIds.has(e.id) &&
+      entries.filter((e) =>
+        e.kind === 'problem'
+          ? problemRatingMatches(e.rating, { min: problemMinRating, max: problemMaxRating })
+          : (!removedIds.has(e.id) &&
           (minScore == null || e.rating >= minScore) &&
           (!hideAnnouncements || !isAnnouncement(e)) &&
           (kw === '' ||
             e.title.toLowerCase().includes(kw) ||
             (e.tags || []).some((t) => t.toLowerCase().includes(kw))))
       ),
-    [entries, removedIds, minScore, hideAnnouncements, kw]
+    [entries, removedIds, minScore, hideAnnouncements, kw, problemMinRating, problemMaxRating]
   )
 
   const addEntries = useCallback(async (list) => {
@@ -111,8 +115,9 @@ export default function Feed({
   }, [addEntries, isSeen])
 
   useEffect(() => {
+    setProblemRatingRange(problemMinRating ?? null, problemMaxRating ?? null)
     preloadProblems()
-  }, [])
+  }, [problemMinRating, problemMaxRating])
 
   useEffect(() => {
     if (!seenLoaded || knownIdsRef.current.size > 0) return
