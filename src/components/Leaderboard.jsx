@@ -29,13 +29,17 @@ export default function Leaderboard({ onSignIn }) {
     let cancelled = false
     setRows(null)
     setError(false)
-    getDocs(query(collection(db, 'profiles'), orderBy(field, 'desc'), limit(25)))
-      .then((snap) => {
+    Promise.all([
+      getDocs(query(collection(db, 'profiles'), orderBy(field, 'desc'), limit(25))),
+      getDocs(collection(db, 'bans')).catch(() => null),
+    ])
+      .then(([snap, banSnap]) => {
         if (cancelled) return
+        const bannedUids = new Set((banSnap?.docs || []).map((d) => d.id))
         setRows(
           snap.docs
             .map((d) => ({ uid: d.id, ...d.data() }))
-            .filter((p) => (p[field] || 0) > 0)
+            .filter((p) => (p[field] || 0) > 0 && !bannedUids.has(p.uid))
         )
       })
       .catch(() => {
