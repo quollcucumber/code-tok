@@ -1146,4 +1146,56 @@
   .topbar-name {
     display: none;
   }
+
+  .btn-label {
+    display: none;
+  }
+
+  .topbar {
+    padding: 10px 10px;
+    gap: 8px;
+  }
+
+  .logo {
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  /* Too many actions to fit a narrow screen: shrink them and let the row
+     scroll horizontally so nothing is out of reach. */
+  .topbar-actions {
+    gap: 6px;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .topbar-actions::-webkit-scrollbar {
+    display: none;
+  }
+
+  .topbar-actions .btn-ghost {
+    padding: 6px 10px;
+    font-size: 13px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .topbar-user {
+    gap: 6px;
+  }
+
+  .filter-wrap .btn-ghost {
+    max-width: 44vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .filter-menu {
+    position: fixed;
+    top: 54px;
+    left: 12px;
+    right: 12px;
+    width: auto;
+  }
 }
