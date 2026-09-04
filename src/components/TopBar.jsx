@@ -145,7 +145,11 @@ export default function TopBar({
           className={`btn-ghost ${view === 'saved' ? 'btn-ghost-active' : ''}`}
           onClick={() => onViewChange(view === 'saved' ? 'feed' : 'saved')}
         >
-          {view === 'saved' ? 'Feed' : '⭐ Saved'}
+          {view === 'saved' ? 'Feed' : (
+            <>
+              ⭐<span className="btn-label"> Saved</span>
+            </>
+          )}
         </button>
         <button
           className={`btn-ghost ${view === 'board' ? 'btn-ghost-active' : ''}`}
@@ -162,7 +166,7 @@ export default function TopBar({
         {user ? (
           <div className="topbar-user">
             <button className="btn-ghost topbar-friends" onClick={onFriendsClick}>
-              👥 Friends
+              👥<span className="btn-label"> Friends</span>
               {friendRequestCount > 0 && (
                 <span className="badge">{friendRequestCount}</span>
               )}
