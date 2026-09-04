@@ -130,12 +130,17 @@ export function useChatAlerts(friends, groups, activeChatUid, activeGroupId) {
   const unreadUids = useMemo(() => {
     const set = new Set()
     for (const [key, msg] of Object.entries(latest)) {
-      if (!msg.group && msg.from !== uid && msg.createdAt.seconds > (readMap[key] || 0)) {
+      if (
+        !msg.group &&
+        msg.from !== uid &&
+        msg.createdAt.seconds > (readMap[key] || 0) &&
+        friends.some((f) => f.uid === key)
+      ) {
         set.add(key)
       }
     }
     return set
-  }, [latest, readMap, uid])
+  }, [latest, readMap, uid, friends])
 
   const unreadGroupIds = useMemo(() => {
     const set = new Set()
