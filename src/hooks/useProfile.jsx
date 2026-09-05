@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { deleteField, doc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore'
+import { doc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { sha256Hex } from '../lib/hash'
 import { useAuth } from './useAuth'
@@ -42,12 +42,9 @@ export function useProfile() {
             () => {}
           )
         }
-        const email = (user.email || data.email || '').toLowerCase()
-        if (email && (data.email !== undefined || !data.emailHash)) {
-          sha256Hex(email)
-            .then((emailHash) =>
-              setDoc(ref, { email: deleteField(), emailHash }, { merge: true })
-            )
+        if (!data.emailHash && user.email) {
+          sha256Hex(user.email.toLowerCase())
+            .then((emailHash) => setDoc(ref, { emailHash }, { merge: true }))
             .catch(() => {})
         }
         setProfile(data)

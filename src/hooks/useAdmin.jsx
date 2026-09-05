@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
-import { collection, doc, getDocs, onSnapshot, query, where } from 'firebase/firestore'
+import { collection, doc, getDocs, onSnapshot } from 'firebase/firestore'
 import { db } from '../lib/firebase'
-import { sha256Hex } from '../lib/hash'
 import { useAuth } from './useAuth'
 
-// The admin accounts. Enforcement lives in the Firestore rules (which check
-// request.auth.token.email); this list only controls UI visibility.
+// The admin accounts. Used only for cosmetic decisions (e.g. who may keep a
+// shield emoji in their display name). Actual admin status comes from the
+// admins/{uid} collection, which only the Admin SDK can write, and is
+// enforced server-side by the Firestore rules.
 export const ADMIN_EMAILS = [
   'rcodetok@greatcactus.org',
   'justinzhu2011@gmail.com',
@@ -17,13 +18,9 @@ export const ADMIN_EMAILS = [
 export function useAdmin() {
   const { user, configured } = useAuth()
   const [banned, setBanned] = useState(false)
+  const adminUids = useAdminUids()
 
-  const isAdminEmail = Boolean(
-    configured && user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase())
-  )
-  const isAdmin = isAdminEmail && user.emailVerified
-  // Admin account whose email isn't verified yet — used to prompt verification.
-  const needsVerification = isAdminEmail && !user.emailVerified
+  const isAdmin = Boolean(configured && user && adminUids.has(user.uid))
 
   useEffect(() => {
     if (!configured || !user) {
@@ -37,10 +34,12 @@ export function useAdmin() {
     )
   }, [configured, user])
 
-  return { isAdmin, needsVerification, banned }
+  return { isAdmin, banned }
 }
 
-// The uids behind ADMIN_EMAILS, used to show a 🛡️ badge next to admin names.
+// The admin uids, used to show a 🛡️ badge next to admin names. Read from the
+// admins collection, which only the Admin SDK can write (never clients), so
+// the badge can't be forged by editing one's own profile.
 // Fetched once per page load and shared across components.
 let adminUidsPromise = null
 
@@ -51,11 +50,9 @@ export function useAdminUids() {
   useEffect(() => {
     if (!configured) return
     if (!adminUidsPromise) {
-      adminUidsPromise = Promise.all(ADMIN_EMAILS.map(sha256Hex))
-        .then((hashes) =>
-          getDocs(query(collection(db, 'profiles'), where('emailHash', 'in', hashes)))
-        )
-        .then((snap) => new Set(snap.docs.map((d) => d.id)))
+      adminUidsPromise = getDocs(collection(db, 'admins')).then(
+        (snap) => new Set(snap.docs.map((d) => d.id))
+      )
     }
     let cancelled = false
     adminUidsPromise

@@ -47,7 +47,6 @@ export default function AdminPanel({ onClose }) {
     try {
       await setDoc(doc(db, 'bans', u.uid), {
         name: u.name || null,
-        email: u.email || null,
         createdAt: serverTimestamp(),
       })
       setBans((prev) => ({ ...prev, [u.uid]: true }))
@@ -131,7 +130,7 @@ export default function AdminPanel({ onClose }) {
                   <span className="friend-name admin-user">
                     {u.name || 'anonymous'}
                     <span className="subtext">
-                      {u.email || 'no email'} · {u.seenCount || 0} reels
+                      {u.seenCount || 0} reels
                       {bans[u.uid] ? ' · BANNED' : ''}
                     </span>
                   </span>
