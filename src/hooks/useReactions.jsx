@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { collection, deleteDoc, doc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { useAuth } from './useAuth'
+import { ADMIN_EMAILS } from './useAdmin'
+import { sanitizeName } from './useProfile'
 
 const LOCAL_KEY = 'codetok-reactions'
 
@@ -65,7 +67,10 @@ export function useReactions() {
           const op = has
             ? deleteDoc(likerRef)
             : setDoc(likerRef, {
-                name: user.displayName || user.email || 'anonymous',
+                name: sanitizeName(
+                  user.displayName || 'anonymous',
+                  ADMIN_EMAILS.includes((user.email || '').toLowerCase())
+                ),
                 createdAt: serverTimestamp(),
               })
           op.catch(() => {})

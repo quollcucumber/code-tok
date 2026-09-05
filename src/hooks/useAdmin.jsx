@@ -19,7 +19,10 @@ export function useAdmin() {
   const [banned, setBanned] = useState(false)
 
   const isAdmin = Boolean(
-    configured && user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase())
+    configured &&
+      user?.email &&
+      user.emailVerified &&
+      ADMIN_EMAILS.includes(user.email.toLowerCase())
   )
 
   useEffect(() => {

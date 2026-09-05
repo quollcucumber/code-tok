@@ -6,12 +6,15 @@ import { useAuth } from './useAuth'
 import { ADMIN_EMAILS } from './useAdmin'
 
 // The shield emoji marks administrators, so ordinary users can't put it in
-// their display name (in any variation-selector form).
+// their display name (in any variation-selector form). Email addresses are
+// rejected as names so nobody's email ends up in publicly readable docs.
 const SHIELD_RE = /\u{1F6E1}\uFE0F?/gu
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export function sanitizeName(name, isAdmin) {
   const cleaned = isAdmin ? name : name.replace(SHIELD_RE, '')
-  return cleaned.replace(/\s+/g, ' ').trim() || 'anonymous'
+  const result = cleaned.replace(/\s+/g, ' ').trim()
+  return !result || EMAIL_RE.test(result) ? 'anonymous' : result
 }
 
 // Public profile docs live at profiles/{uid}: { name, nameLower, emailHash, photo }.
@@ -49,7 +52,7 @@ export function useProfile() {
         }
         setProfile(data)
       } else {
-        const name = sanitizeName(user.displayName || user.email || 'anonymous', isAdmin)
+        const name = sanitizeName(user.displayName || 'anonymous', isAdmin)
         sha256Hex((user.email || '').toLowerCase())
           .then((emailHash) =>
             setDoc(ref, {
