@@ -13,6 +13,7 @@ import {
   where,
 } from 'firebase/firestore'
 import { db } from '../lib/firebase'
+import { sha256Hex } from '../lib/hash'
 import { useAuth } from './useAuth'
 
 // Friendships are single docs at friendships/{fromUid_toUid}:
@@ -73,11 +74,14 @@ export function useFriends() {
     async (search) => {
       const q = search.trim().toLowerCase()
       if (!q) throw new Error('Type an email or display name')
-      const [byEmail, byName] = await Promise.all([
+      const [byHash, byEmail, byName] = await Promise.all([
+        sha256Hex(q).then((hash) =>
+          getDocs(query(collection(db, 'profiles'), where('emailHash', '==', hash)))
+        ),
         getDocs(query(collection(db, 'profiles'), where('email', '==', q))),
         getDocs(query(collection(db, 'profiles'), where('nameLower', '==', q))),
       ])
-      const found = [...byEmail.docs, ...byName.docs].find((d) => d.id !== uid)
+      const found = [...byHash.docs, ...byEmail.docs, ...byName.docs].find((d) => d.id !== uid)
       if (!found) throw new Error('No account found with that email or name')
       const other = found.id
       const existing = links.find((l) => l.from === other || l.to === other)
