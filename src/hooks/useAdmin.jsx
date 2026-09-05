@@ -53,12 +53,9 @@ export function useAdminUids() {
     if (!adminUidsPromise) {
       adminUidsPromise = Promise.all(ADMIN_EMAILS.map(sha256Hex))
         .then((hashes) =>
-          Promise.all([
-            getDocs(query(collection(db, 'profiles'), where('emailHash', 'in', hashes))),
-            getDocs(query(collection(db, 'profiles'), where('email', 'in', ADMIN_EMAILS))),
-          ])
+          getDocs(query(collection(db, 'profiles'), where('emailHash', 'in', hashes)))
         )
-        .then(([byHash, byEmail]) => new Set([...byHash.docs, ...byEmail.docs].map((d) => d.id)))
+        .then((snap) => new Set(snap.docs.map((d) => d.id)))
     }
     let cancelled = false
     adminUidsPromise
