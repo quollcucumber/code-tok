@@ -173,8 +173,8 @@ export default function FriendsPanel({
                   <span className="friend-name">
                     {f.profile?.name || '…'}
                     <AdminBadge show={adminUids.has(f.uid)} />
-                    {unreadUids.has(f.uid) && <span className="unread-dot" />}
                   </span>
+                  {unreadUids.has(f.uid) && <span className="unread-dot" />}
                   <button className="btn-primary friend-action" onClick={() => onOpenChat(f)}>
                     Message
                   </button>
@@ -192,8 +192,8 @@ export default function FriendsPanel({
               <div className="friend-row" key={g.id}>
                 <span className="friend-name">
                   {g.name} <span className="subtext">({g.members.length})</span>
-                  {unreadGroupIds.has(g.id) && <span className="unread-dot" />}
                 </span>
+                {unreadGroupIds.has(g.id) && <span className="unread-dot" />}
                 <button className="btn-primary friend-action" onClick={() => onOpenGroup(g)}>
                   Open
                 </button>
