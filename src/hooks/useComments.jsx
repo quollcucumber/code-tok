@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, serverTimestamp } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { useAuth } from './useAuth'
+import { ADMIN_EMAILS } from './useAdmin'
+import { sanitizeName } from './useProfile'
 
 // Comments live in Firestore under blogs/{blogId}/comments/{commentId}.
 export function useComments(blogId) {
@@ -28,7 +30,10 @@ export function useComments(blogId) {
     addComment: async (text) => {
       await addDoc(collection(db, 'blogs', String(blogId), 'comments'), {
         uid: user.uid,
-        name: user.displayName || user.email || 'anonymous',
+        name: sanitizeName(
+          user.displayName || 'anonymous',
+          ADMIN_EMAILS.includes((user.email || '').toLowerCase())
+        ),
         text,
         createdAt: serverTimestamp(),
       })

@@ -1,19 +1,25 @@
 import { useCallback, useEffect, useState } from 'react'
-import { doc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore'
+import { deleteField, doc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore'
 import { db } from '../lib/firebase'
+import { sha256Hex } from '../lib/hash'
 import { useAuth } from './useAuth'
 import { ADMIN_EMAILS } from './useAdmin'
 
 // The shield emoji marks administrators, so ordinary users can't put it in
-// their display name (in any variation-selector form).
+// their display name (in any variation-selector form). Email addresses are
+// rejected as names so nobody's email ends up in publicly readable docs.
 const SHIELD_RE = /\u{1F6E1}\uFE0F?/gu
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export function sanitizeName(name, isAdmin) {
   const cleaned = isAdmin ? name : name.replace(SHIELD_RE, '')
-  return cleaned.replace(/\s+/g, ' ').trim() || 'anonymous'
+  const result = cleaned.replace(/\s+/g, ' ').trim()
+  return !result || EMAIL_RE.test(result) ? 'anonymous' : result
 }
 
-// Public profile docs live at profiles/{uid}: { name, nameLower, email, photo }.
+// Public profile docs live at profiles/{uid}: { name, nameLower, emailHash, photo }.
+// Profiles are publicly readable, so only a SHA-256 hash of the email is stored
+// (enough for exact-match friend lookup without exposing addresses).
 // photo is a small base64 data URL (avatars are compressed client-side so they
 // fit comfortably in a Firestore doc — no Cloud Storage needed).
 export function useProfile() {
@@ -36,16 +42,28 @@ export function useProfile() {
             () => {}
           )
         }
+        const email = (user.email || data.email || '').toLowerCase()
+        if (email && (data.email !== undefined || !data.emailHash)) {
+          sha256Hex(email)
+            .then((emailHash) =>
+              setDoc(ref, { email: deleteField(), emailHash }, { merge: true })
+            )
+            .catch(() => {})
+        }
         setProfile(data)
       } else {
-        const name = sanitizeName(user.displayName || user.email || 'anonymous', isAdmin)
-        setDoc(ref, {
-          name,
-          nameLower: name.toLowerCase(),
-          email: (user.email || '').toLowerCase(),
-          photo: user.photoURL || null,
-          createdAt: serverTimestamp(),
-        }).catch(() => {})
+        const name = sanitizeName(user.displayName || 'anonymous', isAdmin)
+        sha256Hex((user.email || '').toLowerCase())
+          .then((emailHash) =>
+            setDoc(ref, {
+              name,
+              nameLower: name.toLowerCase(),
+              emailHash,
+              photo: user.photoURL || null,
+              createdAt: serverTimestamp(),
+            })
+          )
+          .catch(() => {})
       }
     })
   }, [configured, user])

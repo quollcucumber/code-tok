@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { collection, doc, getDocs, onSnapshot, query, where } from 'firebase/firestore'
 import { db } from '../lib/firebase'
+import { sha256Hex } from '../lib/hash'
 import { useAuth } from './useAuth'
 
 // The admin accounts. Enforcement lives in the Firestore rules (which check
@@ -18,7 +19,10 @@ export function useAdmin() {
   const [banned, setBanned] = useState(false)
 
   const isAdmin = Boolean(
-    configured && user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase())
+    configured &&
+      user?.email &&
+      user.emailVerified &&
+      ADMIN_EMAILS.includes(user.email.toLowerCase())
   )
 
   useEffect(() => {
@@ -47,9 +51,14 @@ export function useAdminUids() {
   useEffect(() => {
     if (!configured) return
     if (!adminUidsPromise) {
-      adminUidsPromise = getDocs(
-        query(collection(db, 'profiles'), where('email', 'in', ADMIN_EMAILS))
-      ).then((snap) => new Set(snap.docs.map((d) => d.id)))
+      adminUidsPromise = Promise.all(ADMIN_EMAILS.map(sha256Hex))
+        .then((hashes) =>
+          Promise.all([
+            getDocs(query(collection(db, 'profiles'), where('emailHash', 'in', hashes))),
+            getDocs(query(collection(db, 'profiles'), where('email', 'in', ADMIN_EMAILS))),
+          ])
+        )
+        .then(([byHash, byEmail]) => new Set([...byHash.docs, ...byEmail.docs].map((d) => d.id)))
     }
     let cancelled = false
     adminUidsPromise
