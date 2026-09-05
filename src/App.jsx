@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { AuthProvider } from './hooks/useAuth'
+import { AuthProvider, useAuth } from './hooks/useAuth'
 import { useReactions } from './hooks/useReactions'
 import { useProblems } from './hooks/useProblems'
 import { useFriends } from './hooks/useFriends'
@@ -38,6 +38,41 @@ function readMinScore() {
   return readStoredNumber(FILTER_KEY)
 }
 
+function VerifyEmailBanner() {
+  const { sendVerification, refreshVerification } = useAuth()
+  const [status, setStatus] = useState('')
+
+  return (
+    <div className="banned-banner" role="alert">
+      Admin tools are locked until your email is verified.{' '}
+      <button
+        className="btn-link"
+        onClick={() => {
+          sendVerification()
+            .then(() => setStatus('Verification email sent — check your inbox.'))
+            .catch((err) => setStatus(err.message.replace('Firebase: ', '')))
+        }}
+      >
+        Send verification email
+      </button>{' '}
+      <button
+        className="btn-link"
+        onClick={() => {
+          refreshVerification()
+            .then((verified) => {
+              if (verified) window.location.reload()
+              else setStatus('Not verified yet — click the link in the email first.')
+            })
+            .catch(() => setStatus('Could not check — try again.'))
+        }}
+      >
+        I've verified
+      </button>
+      {status && <span> {status}</span>}
+    </div>
+  )
+}
+
 function Main() {
   const [showAuth, setShowAuth] = useState(false)
   const [showProfile, setShowProfile] = useState(false)
@@ -63,7 +98,7 @@ function Main() {
   const problemsApi = useProblems()
   const friendsApi = useFriends()
   const groupsApi = useGroups()
-  const { isAdmin, banned } = useAdmin()
+  const { isAdmin, needsVerification, banned } = useAdmin()
   const { profile, saveProfile } = useProfile()
   const { toast, dismissToast, unreadUids, unreadGroupIds } = useChatAlerts(
     friendsApi.friends,
@@ -139,6 +174,7 @@ function Main() {
           posting, liking, and messaging are disabled.
         </div>
       )}
+      {needsVerification && <VerifyEmailBanner />}
       {readingBlog ? (
         <SavedBlogView
           blogId={readingBlog.id}
