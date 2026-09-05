@@ -18,12 +18,12 @@ export function useAdmin() {
   const { user, configured } = useAuth()
   const [banned, setBanned] = useState(false)
 
-  const isAdmin = Boolean(
-    configured &&
-      user?.email &&
-      user.emailVerified &&
-      ADMIN_EMAILS.includes(user.email.toLowerCase())
+  const isAdminEmail = Boolean(
+    configured && user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase())
   )
+  const isAdmin = isAdminEmail && user.emailVerified
+  // Admin account whose email isn't verified yet — used to prompt verification.
+  const needsVerification = isAdminEmail && !user.emailVerified
 
   useEffect(() => {
     if (!configured || !user) {
@@ -37,7 +37,7 @@ export function useAdmin() {
     )
   }, [configured, user])
 
-  return { isAdmin, banned }
+  return { isAdmin, needsVerification, banned }
 }
 
 // The uids behind ADMIN_EMAILS, used to show a 🛡️ badge next to admin names.
