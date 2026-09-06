@@ -2,7 +2,6 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import {
   createUserWithEmailAndPassword,
   onAuthStateChanged,
-  sendEmailVerification,
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut,
@@ -34,14 +33,6 @@ export function AuthProvider({ children }) {
       return cred.user
     },
     signIn: (email, password) => signInWithEmailAndPassword(auth, email, password),
-    sendVerification: () => sendEmailVerification(auth.currentUser),
-    // Re-reads emailVerified from the server; returns the fresh value. A page
-    // reload is still needed afterwards so Firestore gets a fresh ID token.
-    refreshVerification: async () => {
-      await auth.currentUser.reload()
-      if (auth.currentUser.emailVerified) await auth.currentUser.getIdToken(true)
-      return auth.currentUser.emailVerified
-    },
     signInWithGoogle: () => signInWithPopup(auth, googleProvider),
     logOut: () => signOut(auth),
   }

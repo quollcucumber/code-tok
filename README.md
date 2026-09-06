@@ -44,7 +44,7 @@ The feed works immediately with no configuration (likes/saves fall back to local
      match /databases/{database}/documents {
        function isAdmin() {
          return request.auth != null
-          && request.auth.token.email in ['rcodetok@greatcactus.org', 'justinzhu2011@gmail.com', 'teamcuddlepie@gmail.com'];
+           && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
        }
        function notBanned() {
          return request.auth != null
@@ -63,9 +63,41 @@ The feed works immediately with no configuration (likes/saves fall back to local
          allow delete: if isAdmin()
            || (request.auth != null && request.auth.uid == resource.data.uid);
        }
+       match /admins/{uid} {
+         allow read: if true;
+         allow write: if false;
+       }
        match /profiles/{uid} {
          allow read: if true;
-         allow write: if request.auth != null && request.auth.uid == uid;
+         allow create: if request.auth != null && request.auth.uid == uid
+           && request.resource.data.keys().hasOnly(['name', 'nameLower', 'emailHash', 'photo', 'createdAt', 'seenCount', 'solvedCount'])
+           && request.resource.data.name is string
+           && request.resource.data.name.size() > 0
+           && request.resource.data.name.size() <= 60
+           && request.resource.data.emailHash is string
+           && request.resource.data.emailHash.size() == 64
+           && request.resource.data.get('seenCount', 0) == 0
+           && request.resource.data.get('solvedCount', 0) == 0;
+         allow update: if request.auth != null && request.auth.uid == uid
+           && request.resource.data.keys().hasOnly(['name', 'nameLower', 'emailHash', 'photo', 'createdAt', 'seenCount', 'solvedCount'])
+           && (!('emailHash' in resource.data)
+             || request.resource.data.emailHash == resource.data.emailHash)
+           && (!('emailHash' in request.resource.data)
+             || (request.resource.data.emailHash is string
+               && request.resource.data.emailHash.size() == 64))
+           && request.resource.data.get('seenCount', 0) is int
+           && request.resource.data.get('seenCount', 0) >= resource.data.get('seenCount', 0)
+           && request.resource.data.get('solvedCount', 0) is int
+           && request.resource.data.get('solvedCount', 0) >= 0
+           && request.resource.data.get('solvedCount', 0) - resource.data.get('solvedCount', 0) <= 1
+           && resource.data.get('solvedCount', 0) - request.resource.data.get('solvedCount', 0) <= 1
+           && (!('name' in request.resource.data)
+             || (request.resource.data.name is string
+               && request.resource.data.name.size() > 0
+               && request.resource.data.name.size() <= 60))
+           && (request.resource.data.get('photo', null) == null
+             || (request.resource.data.photo is string
+               && request.resource.data.photo.size() <= 300000));
        }
        match /friendships/{pairId} {
          allow read: if request.auth != null && request.auth.uid in resource.data.members;
@@ -129,7 +161,7 @@ The feed works immediately with no configuration (likes/saves fall back to local
            || (request.auth != null && request.auth.uid == resource.data.from);
        }
        match /bans/{uid} {
-         allow read: if isAdmin() || (request.auth != null && request.auth.uid == uid);
+         allow read: if true;
          allow write: if isAdmin();
        }
        match /removedBlogs/{blogId} {
