@@ -16,15 +16,25 @@ for (const line of readFileSync(OUT, 'utf8').split('\n')) {
   if (i > maxId) maxId = i
 }
 
-const recent = await fetch('https://codeforces.com/api/recentActions?maxCount=100').then((r) =>
-  r.json()
-)
-if (recent.status !== 'OK') {
-  console.error('recentActions failed:', recent.comment)
-  process.exit(1)
+async function fetchRecentActions(attempt = 0) {
+  try {
+    const res = await fetch('https://codeforces.com/api/recentActions?maxCount=100')
+    const json = await res.json()
+    if (json.status === 'OK') return json.result
+    throw new Error(json.comment || `HTTP ${res.status}`)
+  } catch (err) {
+    if (attempt >= 8) {
+      console.error(`giving up on recentActions: ${err.message}`)
+      process.exit(1)
+    }
+    await new Promise((r) => setTimeout(r, Math.min(30000, 1000 * 2 ** attempt)))
+    return fetchRecentActions(attempt + 1)
+  }
 }
+
+const recent = await fetchRecentActions()
 let newest = maxId
-for (const action of recent.result) {
+for (const action of recent) {
   if (action.blogEntry && action.blogEntry.id > newest) newest = action.blogEntry.id
 }
 const target = newest + MARGIN
