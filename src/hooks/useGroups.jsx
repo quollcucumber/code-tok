@@ -4,6 +4,7 @@ import {
   arrayRemove,
   arrayUnion,
   collection,
+  deleteDoc,
   doc,
   onSnapshot,
   query,
@@ -54,8 +55,13 @@ export function useGroups() {
         members: [uid],
         createdAt: serverTimestamp(),
       })
-      for (const otherUid of memberUids) {
-        await updateDoc(ref, { members: arrayUnion(otherUid) })
+      try {
+        for (const otherUid of memberUids) {
+          await updateDoc(ref, { members: arrayUnion(otherUid) })
+        }
+      } catch (err) {
+        await deleteDoc(ref).catch(() => {})
+        throw err
       }
     },
     [uid]
