@@ -69,7 +69,7 @@ The feed works immediately with no configuration (likes/saves fall back to local
        }
        match /profiles/{uid} {
          allow read: if true;
-         allow create: if request.auth != null && request.auth.uid == uid
+         allow create: if notBanned() && request.auth.uid == uid
            && request.resource.data.keys().hasOnly(['name', 'nameLower', 'emailHash', 'photo', 'createdAt', 'seenCount', 'solvedCount'])
            && request.resource.data.name is string
            && request.resource.data.name.size() > 0
@@ -77,8 +77,12 @@ The feed works immediately with no configuration (likes/saves fall back to local
            && request.resource.data.emailHash is string
            && request.resource.data.emailHash.size() == 64
            && request.resource.data.get('seenCount', 0) == 0
-           && request.resource.data.get('solvedCount', 0) == 0;
-         allow update: if request.auth != null && request.auth.uid == uid
+           && request.resource.data.get('solvedCount', 0) == 0
+           && (request.resource.data.get('photo', null) == null
+             || (request.resource.data.photo is string
+               && request.resource.data.photo.size() <= 300000
+               && request.resource.data.photo.matches('^data:image/(jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$')));
+         allow update: if notBanned() && request.auth.uid == uid
            && request.resource.data.keys().hasOnly(['name', 'nameLower', 'emailHash', 'photo', 'createdAt', 'seenCount', 'solvedCount'])
            && (!('emailHash' in resource.data)
              || request.resource.data.emailHash == resource.data.emailHash)
@@ -97,7 +101,8 @@ The feed works immediately with no configuration (likes/saves fall back to local
                && request.resource.data.name.size() <= 60))
            && (request.resource.data.get('photo', null) == null
              || (request.resource.data.photo is string
-               && request.resource.data.photo.size() <= 300000));
+               && request.resource.data.photo.size() <= 300000
+               && request.resource.data.photo.matches('^data:image/(jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$')));
        }
        match /friendships/{pairId} {
          allow read: if request.auth != null && request.auth.uid in resource.data.members;
