@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   collection,
   doc,
-  getDoc,
   getDocs,
   increment,
   serverTimestamp,
@@ -44,17 +43,6 @@ export function useSeen() {
       .then((snap) => {
         if (cancelled) return
         snap.forEach((d) => seenRef.current.add(d.id))
-        // Sync the public read counter (used by the leaderboard) so it
-        // reflects history from before the counter existed. Only ever
-        // raise it: this device's set may be missing reels counted
-        // elsewhere (e.g. read while signed out on another device).
-        const size = seenRef.current.size
-        getDoc(doc(db, 'profiles', user.uid))
-          .then((profile) => {
-            if ((profile.data()?.seenCount || 0) >= size) return
-            return setDoc(doc(db, 'profiles', user.uid), { seenCount: size }, { merge: true })
-          })
-          .catch(() => {})
       })
       .catch(() => {
         // seen history is best-effort; the feed still works without it
