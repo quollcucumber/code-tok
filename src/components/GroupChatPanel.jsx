@@ -14,6 +14,7 @@ import { db } from '../lib/firebase'
 import { useAuth } from '../hooks/useAuth'
 import { useAdmin, useAdminUids } from '../hooks/useAdmin'
 import AdminBadge from './AdminBadge'
+import { MAX_GROUP_MEMBERS } from '../hooks/useGroups'
 import { IMAGE_PLACEHOLDER, fileToChatImage } from '../hooks/useProfile'
 import { timeAgo } from '../lib/codeforces'
 
@@ -22,6 +23,7 @@ export default function GroupChatPanel({
   myName,
   friends,
   addMember,
+  removeMember,
   leaveGroup,
   onBack,
   onClose,
@@ -64,7 +66,10 @@ export default function GroupChatPanel({
     }
   }, [group.members, memberProfiles])
 
-  const addable = friends.filter((f) => !group.members.includes(f.uid))
+  const addable =
+    group.members.length < MAX_GROUP_MEMBERS
+      ? friends.filter((f) => !group.members.includes(f.uid))
+      : []
 
   async function handleAdd(otherUid) {
     setMemberError('')
@@ -72,6 +77,15 @@ export default function GroupChatPanel({
       await addMember(group.id, otherUid)
     } catch (err) {
       setMemberError(`Couldn't add: ${err.message}`)
+    }
+  }
+
+  async function handleRemove(otherUid) {
+    setMemberError('')
+    try {
+      await removeMember(group.id, otherUid)
+    } catch (err) {
+      setMemberError(`Couldn't remove: ${err.message}`)
     }
   }
 
@@ -170,6 +184,11 @@ export default function GroupChatPanel({
                     <AdminBadge show={adminUids.has(uid)} />
                     {uid === group.createdBy && <span className="subtext"> · creator</span>}
                   </span>
+                  {group.createdBy === user.uid && uid !== user.uid && (
+                    <button className="btn-ghost friend-action" onClick={() => handleRemove(uid)}>
+                      Remove
+                    </button>
+                  )}
                 </div>
               )
             })}

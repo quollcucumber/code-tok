@@ -248,6 +248,7 @@ function Main() {
           myName={profile?.name}
           friends={friendsApi.friends}
           addMember={groupsApi.addMember}
+          removeMember={groupsApi.removeMember}
           leaveGroup={groupsApi.leaveGroup}
           onBack={() => setChatGroup(null)}
           onClose={() => {
