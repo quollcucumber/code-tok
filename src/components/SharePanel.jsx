@@ -11,8 +11,8 @@ export default function SharePanel({ entry, friends, groups, myName, onClose, on
 
   const blog = {
     id: Number(entry.id),
-    title: entry.title,
-    authorHandle: entry.authorHandle,
+    title: String(entry.title).slice(0, 300),
+    authorHandle: String(entry.authorHandle).slice(0, 100),
     url: `https://codeforces.com/blog/entry/${Number(entry.id)}`,
   }
 
@@ -21,7 +21,7 @@ export default function SharePanel({ entry, friends, groups, myName, onClose, on
     try {
       await addDoc(ref, {
         from: user.uid,
-        text: `📤 Shared a blog: ${entry.title}`,
+        text: `📤 Shared a blog: ${blog.title}`,
         blog,
         createdAt: serverTimestamp(),
         ...extra,
