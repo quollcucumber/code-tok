@@ -124,7 +124,9 @@ export default function ChatPanel({ friend, onBack, onClose, onOpenBlog }) {
                   </button>
                 ) : (
                   <>
-                    {m.image && <img className="chat-image" src={m.image} alt="" />}
+                    {typeof m.image === 'string' && m.image.startsWith('data:image/') && (
+                      <img className="chat-image" src={m.image} alt="" />
+                    )}
                     {(!m.image || m.text !== IMAGE_PLACEHOLDER) && (
                       <p className="chat-msg-text">{m.text}</p>
                     )}

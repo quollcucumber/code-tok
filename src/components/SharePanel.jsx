@@ -10,10 +10,10 @@ export default function SharePanel({ entry, friends, groups, myName, onClose, on
   const [error, setError] = useState('')
 
   const blog = {
-    id: entry.id,
+    id: Number(entry.id),
     title: entry.title,
     authorHandle: entry.authorHandle,
-    url: entry.url,
+    url: `https://codeforces.com/blog/entry/${Number(entry.id)}`,
   }
 
   async function send(key, ref, extra) {

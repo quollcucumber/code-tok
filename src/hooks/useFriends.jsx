@@ -19,6 +19,18 @@ import { useAuth } from './useAuth'
 // Friendships are single docs at friendships/{fromUid_toUid}:
 // { from, to, members: [from, to], status: 'pending' | 'accepted' }.
 // A request is created by `from`; only `to` can flip it to accepted.
+// Docs that don't follow that shape (e.g. written before the rules enforced it)
+// are ignored.
+function isWellFormed(link, uid) {
+  return (
+    typeof link.from === 'string' &&
+    typeof link.to === 'string' &&
+    link.from !== link.to &&
+    (link.from === uid || link.to === uid) &&
+    link.pairId === `${link.from}_${link.to}`
+  )
+}
+
 export function useFriends() {
   const { user, configured } = useAuth()
   const [links, setLinks] = useState([])
@@ -34,7 +46,12 @@ export function useFriends() {
     }
     return onSnapshot(
       query(collection(db, 'friendships'), where('members', 'array-contains', uid)),
-      (snap) => setLinks(snap.docs.map((d) => ({ pairId: d.id, ...d.data() }))),
+      (snap) =>
+        setLinks(
+          snap.docs
+            .map((d) => ({ ...d.data(), pairId: d.id }))
+            .filter((link) => isWellFormed(link, uid))
+        ),
       (err) => setError(`Couldn't load friends: ${err.message}`)
     )
   }, [configured, uid])
@@ -74,13 +91,24 @@ export function useFriends() {
     async (search) => {
       const q = search.trim().toLowerCase()
       if (!q) throw new Error('Type an email or display name')
-      const [byHash, byName] = await Promise.all([
-        sha256Hex(q).then((hash) =>
-          getDocs(query(collection(db, 'profiles'), where('emailHash', '==', hash)))
-        ),
+      const [byEmail, byName] = await Promise.all([
+        sha256Hex(q)
+          .then((hash) => getDoc(doc(db, 'emailIndex', hash)))
+          .then((snap) =>
+            snap.exists() && typeof snap.data().uid === 'string'
+              ? getDoc(doc(db, 'profiles', snap.data().uid))
+              : null
+          ),
         getDocs(query(collection(db, 'profiles'), where('nameLower', '==', q))),
       ])
-      const found = [...byHash.docs, ...byName.docs].find((d) => d.id !== uid)
+      let found = byEmail?.exists() && byEmail.id !== uid ? byEmail : null
+      if (!found) {
+        const matches = byName.docs.filter((d) => d.id !== uid)
+        if (matches.length > 1) {
+          throw new Error('Several people have that name — search by their email instead')
+        }
+        found = matches[0]
+      }
       if (!found) throw new Error('No account found with that email or name')
       const other = found.id
       const existing = links.find((l) => l.from === other || l.to === other)
