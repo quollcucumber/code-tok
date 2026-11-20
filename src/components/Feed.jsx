@@ -26,7 +26,6 @@ export default function Feed({
   problemsApi,
   friends,
   groups,
-  myName,
   minScore,
   hideAnnouncements,
   keyword,
@@ -274,7 +273,6 @@ export default function Feed({
           entry={shareFor}
           friends={friends}
           groups={groups}
-          myName={myName}
           onClose={() => setShareFor(null)}
           onSignIn={onSignIn}
         />
