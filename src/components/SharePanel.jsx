@@ -10,10 +10,10 @@ export default function SharePanel({ entry, friends, groups, myName, onClose, on
   const [error, setError] = useState('')
 
   const blog = {
-    id: entry.id,
-    title: entry.title,
-    authorHandle: entry.authorHandle,
-    url: entry.url,
+    id: Number(entry.id),
+    title: String(entry.title).slice(0, 300),
+    authorHandle: String(entry.authorHandle).slice(0, 100),
+    url: `https://codeforces.com/blog/entry/${Number(entry.id)}`,
   }
 
   async function send(key, ref, extra) {
@@ -21,7 +21,7 @@ export default function SharePanel({ entry, friends, groups, myName, onClose, on
     try {
       await addDoc(ref, {
         from: user.uid,
-        text: `📤 Shared a blog: ${entry.title}`,
+        text: `📤 Shared a blog: ${blog.title}`,
         blog,
         createdAt: serverTimestamp(),
         ...extra,
