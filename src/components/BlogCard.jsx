@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { fetchBlogContent, ratingColor, timeAgo } from '../lib/codeforces'
 import { prepareBlogHtml } from '../lib/blogHtml'
 import { useFriendLikes } from '../hooks/useFriends'
+import { avatarSrc } from '../hooks/useProfile'
 
 function friendLikeText(likers) {
   const names = likers.map((f) => f.profile?.name || 'a friend')
@@ -77,8 +78,8 @@ export default function BlogCard({
         {friendLikers.length > 0 && (
           <div className="friend-likes">
             {friendLikers.slice(0, 3).map((f) =>
-              f.profile?.photo ? (
-                <img className="avatar avatar-xs" src={f.profile.photo} alt="" key={f.uid} />
+              avatarSrc(f.profile) ? (
+                <img className="avatar avatar-xs" src={avatarSrc(f.profile)} alt="" key={f.uid} />
               ) : (
                 <div className="avatar avatar-xs avatar-fallback" key={f.uid}>
                   {(f.profile?.name || '?')[0].toUpperCase()}

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { fileToAvatar } from '../hooks/useProfile'
+import { avatarSrc, fileToAvatar } from '../hooks/useProfile'
 
 export default function ProfileModal({ profile, saveProfile, onClose }) {
   const [name, setName] = useState('')
@@ -10,7 +10,7 @@ export default function ProfileModal({ profile, saveProfile, onClose }) {
   useEffect(() => {
     if (profile) {
       setName(profile.name || '')
-      setPhoto(profile.photo || null)
+      setPhoto(avatarSrc(profile))
     }
   }, [profile])
 

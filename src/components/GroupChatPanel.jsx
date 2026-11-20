@@ -14,7 +14,7 @@ import { db } from '../lib/firebase'
 import { useAuth } from '../hooks/useAuth'
 import { useAdmin, useAdminUids } from '../hooks/useAdmin'
 import AdminBadge from './AdminBadge'
-import { IMAGE_PLACEHOLDER, fileToChatImage } from '../hooks/useProfile'
+import { avatarSrc, fileToChatImage, IMAGE_PLACEHOLDER } from '../hooks/useProfile'
 import { timeAgo } from '../lib/codeforces'
 
 export default function GroupChatPanel({
@@ -158,8 +158,8 @@ export default function GroupChatPanel({
               const p = memberProfiles[uid]
               return (
                 <div className="friend-row" key={uid}>
-                  {p?.photo ? (
-                    <img className="avatar avatar-sm" src={p.photo} alt="" />
+                  {avatarSrc(p) ? (
+                    <img className="avatar avatar-sm" src={avatarSrc(p)} alt="" />
                   ) : (
                     <div className="avatar avatar-sm avatar-fallback">
                       {(p?.name || '?')[0].toUpperCase()}
@@ -178,8 +178,8 @@ export default function GroupChatPanel({
                 <h4 className="friends-section-title">Add a friend</h4>
                 {addable.map((f) => (
                   <div className="friend-row" key={f.uid}>
-                    {f.profile?.photo ? (
-                      <img className="avatar avatar-sm" src={f.profile.photo} alt="" />
+                    {avatarSrc(f.profile) ? (
+                      <img className="avatar avatar-sm" src={avatarSrc(f.profile)} alt="" />
                     ) : (
                       <div className="avatar avatar-sm avatar-fallback">
                         {(f.profile?.name || '?')[0].toUpperCase()}
