@@ -3,6 +3,7 @@ import { collection, limit, onSnapshot, orderBy, query } from 'firebase/firestor
 import { db } from '../lib/firebase'
 import { useAuth } from './useAuth'
 import { chatPairId } from './useFriends'
+import { displayName, fetchProfileName } from './useProfile'
 
 const READ_KEY = 'codetok-chat-read'
 
@@ -25,6 +26,7 @@ export function useChatAlerts(friends, groups, activeChatUid, activeGroupId) {
   const [readMap, setReadMap] = useState(readReadMap)
   const notifiedRef = useRef(new Set())
   const mountedAtRef = useRef(null)
+  const latestGroupMsgRef = useRef({})
 
   const uid = user?.uid
 
@@ -68,10 +70,16 @@ export function useChatAlerts(friends, groups, activeChatUid, activeGroupId) {
         (snap) => {
           const docSnap = snap.docs[0]
           if (!docSnap || !docSnap.data().createdAt) return
-          setLatest((prev) => ({
-            ...prev,
-            [`group:${group.id}`]: { id: docSnap.id, group, ...docSnap.data() },
-          }))
+          const key = `group:${group.id}`
+          const data = docSnap.data()
+          latestGroupMsgRef.current[key] = docSnap.id
+          fetchProfileName(data.from).then((name) => {
+            if (latestGroupMsgRef.current[key] !== docSnap.id) return
+            setLatest((prev) => ({
+              ...prev,
+              [key]: { id: docSnap.id, group, ...data, senderName: displayName(name) },
+            }))
+          })
         },
         () => {}
       )
@@ -104,7 +112,7 @@ export function useChatAlerts(friends, groups, activeChatUid, activeGroupId) {
       setToast(msg)
       if (document.hidden && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
         const title = msg.group
-          ? `${msg.fromName || 'Someone'} in ${msg.group.name}`
+          ? `${msg.senderName} in ${msg.group.name}`
           : msg.friend.profile?.name || 'New message'
         new Notification(title, { body: msg.text })
       }

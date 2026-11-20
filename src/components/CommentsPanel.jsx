@@ -3,12 +3,14 @@ import { useComments } from '../hooks/useComments'
 import { useAuth } from '../hooks/useAuth'
 import { useAdminUids } from '../hooks/useAdmin'
 import AdminBadge from './AdminBadge'
+import { displayName, useProfileNames } from '../hooks/useProfile'
 import { timeAgo } from '../lib/codeforces'
 
 export default function CommentsPanel({ entry, onClose, onSignIn }) {
   const { user, configured } = useAuth()
   const { comments, error, canComment, addComment, deleteComment } = useComments(entry.id)
   const adminUids = useAdminUids()
+  const names = useProfileNames((comments || []).map((c) => c.uid))
   const [text, setText] = useState('')
   const [busy, setBusy] = useState(false)
   const [sendError, setSendError] = useState('')
@@ -53,7 +55,7 @@ export default function CommentsPanel({ entry, onClose, onSignIn }) {
               <div className="comment" key={c.id}>
                 <div className="comment-meta">
                   <span className="comment-name">
-                    {c.name}
+                    {names[c.uid] === undefined ? '…' : displayName(names[c.uid])}
                     <AdminBadge show={adminUids.has(c.uid)} />
                   </span>
                   <span className="subtext">
