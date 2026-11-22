@@ -132,16 +132,41 @@ The feed works immediately with no configuration (likes/saves fall back to local
          allow write: if notBanned() && request.auth.uid == uid;
        }
        match /groups/{groupId} {
+         // friendships/{from_to} is accepted only once `to` has accepted it.
+         function isFriendLink(a, b) {
+           let path = /databases/$(database)/documents/friendships/$(a + '_' + b);
+           return exists(path)
+             && get(path).data.status == 'accepted'
+             && get(path).data.from == a
+             && get(path).data.to == b;
+         }
+         function isAcceptedFriend(a, b) {
+           return a != b && (isFriendLink(a, b) || isFriendLink(b, a));
+         }
          allow read: if request.auth != null && request.auth.uid in resource.data.members;
+         // Groups start with only the creator; friends are then added one at a time.
          allow create: if notBanned()
+           && request.resource.data.keys().hasOnly(['name', 'createdBy', 'members', 'createdAt'])
            && request.resource.data.createdBy == request.auth.uid
-           && request.auth.uid in request.resource.data.members
+           && request.resource.data.members == [request.auth.uid]
            && request.resource.data.name is string
            && request.resource.data.name.size() > 0
            && request.resource.data.name.size() <= 50;
+         // Any member may leave or add one of their accepted friends (up to 50
+         // members); only the creator may remove other members.
          allow update: if notBanned()
            && request.auth.uid in resource.data.members
-           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members']);
+           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members'])
+           && request.resource.data.members is list
+           && request.resource.data.members.toSet().size() == request.resource.data.members.size()
+           && (request.resource.data.members == resource.data.members.removeAll([request.auth.uid])
+             || (request.auth.uid == resource.data.createdBy
+               && resource.data.members.hasAll(request.resource.data.members))
+             || (request.resource.data.members.size() == resource.data.members.size() + 1
+               && request.resource.data.members.size() <= 50
+               && request.resource.data.members.hasAll(resource.data.members)
+               && isAcceptedFriend(request.auth.uid,
+                 request.resource.data.members.removeAll(resource.data.members)[0])));
          allow delete: if isAdmin()
            || (request.auth != null && request.auth.uid == resource.data.createdBy);
        }
