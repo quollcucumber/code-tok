@@ -87,6 +87,7 @@ The feed works immediately with no configuration (likes/saves fall back to local
                && request.resource.data.emailHash.size() == 64))
            && request.resource.data.get('seenCount', 0) is int
            && request.resource.data.get('seenCount', 0) >= resource.data.get('seenCount', 0)
+          && request.resource.data.get('seenCount', 0) - resource.data.get('seenCount', 0) <= 1
            && request.resource.data.get('solvedCount', 0) is int
            && request.resource.data.get('solvedCount', 0) >= 0
            && request.resource.data.get('solvedCount', 0) - resource.data.get('solvedCount', 0) <= 1
