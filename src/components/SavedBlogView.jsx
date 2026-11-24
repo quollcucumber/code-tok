@@ -24,7 +24,8 @@ export default function SavedBlogView({
   const [content, setContent] = useState(null)
   const [error, setError] = useState(false)
   const [showComments, setShowComments] = useState(false)
-  const entry = { id: blogId, title: item.title, authorHandle: item.authorHandle, url: item.url }
+  const url = `https://codeforces.com/blog/entry/${Number(blogId)}`
+  const entry = { id: blogId, title: item.title, authorHandle: item.authorHandle, url }
   const friendLikers = useFriendLikes(blogId, friends, true)
 
   useEffect(() => {
@@ -58,7 +59,7 @@ export default function SavedBlogView({
           <button className="btn-ghost" onClick={() => setShowComments(true)} aria-label="Comments">
             💬 Chat
           </button>
-          <a className="btn-ghost" href={item.url} target="_blank" rel="noreferrer">
+          <a className="btn-ghost" href={url} target="_blank" rel="noreferrer">
             Codeforces ↗
           </a>
         </div>
@@ -75,7 +76,7 @@ export default function SavedBlogView({
       ) : error ? (
         <p className="content-note">
           Couldn't load this blog.{' '}
-          <a href={item.url} target="_blank" rel="noreferrer">
+          <a href={url} target="_blank" rel="noreferrer">
             Read it on Codeforces
           </a>
         </p>

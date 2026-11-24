@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { doc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore'
+import { deleteField, doc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { sha256Hex } from '../lib/hash'
 import { useAuth } from './useAuth'
@@ -17,9 +17,10 @@ export function sanitizeName(name, isAdmin) {
   return !result || EMAIL_RE.test(result) ? 'anonymous' : result
 }
 
-// Public profile docs live at profiles/{uid}: { name, nameLower, emailHash, photo }.
-// Profiles are publicly readable, so only a SHA-256 hash of the email is stored
-// (enough for exact-match friend lookup without exposing addresses).
+// Public profile docs live at profiles/{uid}: { name, nameLower, photo }.
+// Email lookup for friend search lives in emailIndex/{sha256(email)} = { uid },
+// which the rules only let the verified owner of that email write and which
+// can be fetched by exact hash but not listed.
 // photo is a small base64 data URL (avatars are compressed client-side so they
 // fit comfortably in a Firestore doc — no Cloud Storage needed).
 export function useProfile() {
@@ -33,34 +34,33 @@ export function useProfile() {
     }
     const ref = doc(db, 'profiles', user.uid)
     const isAdmin = ADMIN_EMAILS.includes((user.email || '').toLowerCase())
+    if (user.email && user.emailVerified) {
+      sha256Hex(user.email.toLowerCase())
+        .then((hash) => setDoc(doc(db, 'emailIndex', hash), { uid: user.uid }))
+        .catch(() => {})
+    }
     return onSnapshot(ref, (snap) => {
       if (snap.exists()) {
         const data = snap.data()
         const clean = sanitizeName(data.name || 'anonymous', isAdmin)
-        if (clean !== data.name) {
-          setDoc(ref, { name: clean, nameLower: clean.toLowerCase() }, { merge: true }).catch(
-            () => {}
-          )
+        const fix = {}
+        if (clean !== data.name || data.nameLower !== clean.toLowerCase()) {
+          fix.name = clean
+          fix.nameLower = clean.toLowerCase()
         }
-        if (!data.emailHash && user.email) {
-          sha256Hex(user.email.toLowerCase())
-            .then((emailHash) => setDoc(ref, { emailHash }, { merge: true }))
-            .catch(() => {})
+        if ('emailHash' in data) fix.emailHash = deleteField()
+        if (Object.keys(fix).length > 0) {
+          setDoc(ref, fix, { merge: true }).catch(() => {})
         }
         setProfile(data)
       } else {
         const name = sanitizeName(user.displayName || 'anonymous', isAdmin)
-        sha256Hex((user.email || '').toLowerCase())
-          .then((emailHash) =>
-            setDoc(ref, {
-              name,
-              nameLower: name.toLowerCase(),
-              emailHash,
-              photo: user.photoURL || null,
-              createdAt: serverTimestamp(),
-            })
-          )
-          .catch(() => {})
+        setDoc(ref, {
+          name,
+          nameLower: name.toLowerCase(),
+          photo: user.photoURL || null,
+          createdAt: serverTimestamp(),
+        }).catch(() => {})
       }
     })
   }, [configured, user])
