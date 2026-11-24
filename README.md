@@ -56,7 +56,9 @@ The feed works immediately with no configuration (likes/saves fall back to local
        match /blogs/{blogId}/comments/{commentId} {
          allow read: if true;
          allow create: if notBanned()
+           && request.resource.data.keys().hasOnly(['uid', 'text', 'createdAt'])
            && request.resource.data.uid == request.auth.uid
+           && request.resource.data.createdAt == request.time
            && request.resource.data.text is string
            && request.resource.data.text.size() > 0
            && request.resource.data.text.size() <= 2000;
