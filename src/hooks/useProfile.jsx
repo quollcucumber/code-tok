@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { doc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore'
+import { doc, getDoc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { sha256Hex } from '../lib/hash'
 import { useAuth } from './useAuth'
@@ -27,6 +27,52 @@ export function sanitizeName(name, isAdmin) {
   const cleaned = isAdmin ? name : name.replace(SHIELD_RE, '')
   const result = cleaned.replace(/\s+/g, ' ').trim()
   return !result || EMAIL_RE.test(result) ? 'anonymous' : result
+}
+
+// Author names shown next to comments and group messages are always read from
+// profiles/{uid}, never from a name stored on the comment/message itself (the
+// rules can't tie that copy to the sender, so it could be forged).
+// Cached per page load; resolves to null when the profile is missing.
+const profileNameCache = new Map()
+
+export function fetchProfileName(uid) {
+  if (!profileNameCache.has(uid)) {
+    profileNameCache.set(
+      uid,
+      getDoc(doc(db, 'profiles', uid))
+        .then((snap) => (snap.exists() ? snap.data().name || null : null))
+        .catch(() => {
+          profileNameCache.delete(uid)
+          return null
+        })
+    )
+  }
+  return profileNameCache.get(uid)
+}
+
+// The real AdminBadge marks admins, so shields are always stripped from names.
+export function displayName(name) {
+  return sanitizeName(name || 'anonymous', false)
+}
+
+// Maps each uid to its profile name: undefined while loading, null if missing.
+export function useProfileNames(uids) {
+  const [names, setNames] = useState({})
+  const key = JSON.stringify([...new Set(uids.filter(Boolean))].sort())
+
+  useEffect(() => {
+    let cancelled = false
+    for (const uid of JSON.parse(key)) {
+      fetchProfileName(uid).then((name) => {
+        if (!cancelled) setNames((prev) => (prev[uid] === name ? prev : { ...prev, [uid]: name }))
+      })
+    }
+    return () => {
+      cancelled = true
+    }
+  }, [key])
+
+  return names
 }
 
 // Public profile docs live at profiles/{uid}: { name, nameLower, emailHash, photo }.
@@ -108,6 +154,7 @@ export function useProfile() {
         data.photo = photo
       }
       await setDoc(doc(db, 'profiles', user.uid), data, { merge: true })
+      profileNameCache.delete(user.uid)
     },
     [user]
   )

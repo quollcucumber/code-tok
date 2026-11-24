@@ -4,7 +4,7 @@ import { db } from '../lib/firebase'
 import { useAuth } from '../hooks/useAuth'
 import { chatPairId } from '../hooks/useFriends'
 
-export default function SharePanel({ entry, friends, groups, myName, onClose, onSignIn }) {
+export default function SharePanel({ entry, friends, groups, onClose, onSignIn }) {
   const { user, configured } = useAuth()
   const [sent, setSent] = useState({})
   const [error, setError] = useState('')
@@ -81,9 +81,7 @@ export default function SharePanel({ entry, friends, groups, myName, onClose, on
                     className="btn-primary friend-action"
                     disabled={Boolean(sent[g.id])}
                     onClick={() =>
-                      send(g.id, collection(db, 'groups', g.id, 'messages'), {
-                        fromName: myName || 'anonymous',
-                      })
+                      send(g.id, collection(db, 'groups', g.id, 'messages'))
                     }
                   >
                     {sent[g.id] ? 'Sent ✓' : 'Send'}

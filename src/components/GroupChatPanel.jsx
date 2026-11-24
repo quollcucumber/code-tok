@@ -14,12 +14,17 @@ import { db } from '../lib/firebase'
 import { useAuth } from '../hooks/useAuth'
 import { useAdmin, useAdminUids } from '../hooks/useAdmin'
 import AdminBadge from './AdminBadge'
-import { avatarSrc, fileToChatImage, IMAGE_PLACEHOLDER } from '../hooks/useProfile'
+import {
+  IMAGE_PLACEHOLDER,
+  avatarSrc,
+  displayName,
+  fileToChatImage,
+  useProfileNames,
+} from '../hooks/useProfile'
 import { timeAgo } from '../lib/codeforces'
 
 export default function GroupChatPanel({
   group,
-  myName,
   friends,
   addMember,
   leaveGroup,
@@ -38,6 +43,7 @@ export default function GroupChatPanel({
   const [showMembers, setShowMembers] = useState(false)
   const [memberProfiles, setMemberProfiles] = useState({})
   const [memberError, setMemberError] = useState('')
+  const senderNames = useProfileNames((messages || []).map((m) => m.from))
   const bottomRef = useRef(null)
 
   useEffect(() => {
@@ -106,7 +112,6 @@ export default function GroupChatPanel({
     try {
       const msg = {
         from: user.uid,
-        fromName: myName || 'anonymous',
         text: trimmed || IMAGE_PLACEHOLDER,
         createdAt: serverTimestamp(),
       }
@@ -214,7 +219,7 @@ export default function GroupChatPanel({
               >
                 {m.from !== user.uid && (
                   <span className="chat-msg-name">
-                    {m.fromName}
+                    {senderNames[m.from] === undefined ? '…' : displayName(senderNames[m.from])}
                     <AdminBadge show={adminUids.has(m.from)} />
                   </span>
                 )}

@@ -156,7 +156,6 @@ function Main() {
           problemsApi={problemsApi}
           friends={friendsApi.friends}
           groups={groupsApi.groups}
-          myName={profile?.name}
           minScore={minScore}
           hideAnnouncements={hideAnnouncements}
           keyword={keyword}
@@ -224,7 +223,7 @@ function Main() {
           <span className="msg-toast-body">
             <strong>
               {toast.group
-                ? `${toast.fromName || 'Someone'} in ${toast.group.name}`
+                ? `${toast.senderName} in ${toast.group.name}`
                 : toast.friend.profile?.name || 'New message'}
             </strong>
             <span className="msg-toast-text">{toast.text}</span>
@@ -245,7 +244,6 @@ function Main() {
       {chatGroup && (
         <GroupChatPanel
           group={groupsApi.groups.find((g) => g.id === chatGroup.id) || chatGroup}
-          myName={profile?.name}
           friends={friendsApi.friends}
           addMember={groupsApi.addMember}
           leaveGroup={groupsApi.leaveGroup}
