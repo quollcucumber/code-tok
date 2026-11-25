@@ -9,6 +9,7 @@ import {
 } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { useAuth } from '../hooks/useAuth'
+import { avatarSrc } from '../hooks/useProfile'
 
 export default function AdminPanel({ onClose }) {
   const { user } = useAuth()
@@ -120,8 +121,8 @@ export default function AdminPanel({ onClose }) {
             <div className="comments-list friends-list">
               {users.map((u) => (
                 <div className="friend-row" key={u.uid}>
-                  {u.photo ? (
-                    <img className="avatar avatar-sm" src={u.photo} alt="" />
+                  {avatarSrc(u) ? (
+                    <img className="avatar avatar-sm" src={avatarSrc(u)} alt="" />
                   ) : (
                     <div className="avatar avatar-sm avatar-fallback">
                       {(u.name || '?')[0].toUpperCase()}

@@ -11,6 +11,18 @@ import { ADMIN_EMAILS } from './useAdmin'
 const SHIELD_RE = /\u{1F6E1}\uFE0F?/gu
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
+// Must match the photo check in the profiles Firestore rule. Only inline image
+// data URLs are allowed, so a profile can't point viewers at a remote URL.
+const AVATAR_RE = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$/
+
+export function isAvatarDataUrl(photo) {
+  return typeof photo === 'string' && photo.length <= 300000 && AVATAR_RE.test(photo)
+}
+
+export function avatarSrc(profile) {
+  return isAvatarDataUrl(profile?.photo) ? profile.photo : null
+}
+
 export function sanitizeName(name, isAdmin) {
   const cleaned = isAdmin ? name : name.replace(SHIELD_RE, '')
   const result = cleaned.replace(/\s+/g, ' ').trim()
@@ -79,16 +91,30 @@ export function useProfile() {
     }
     const ref = doc(db, 'profiles', user.uid)
     const isAdmin = ADMIN_EMAILS.includes((user.email || '').toLowerCase())
+    // Repair/create writes are attempted once per listener: if the rules reject
+    // one (e.g. the user is banned), Firestore rolls back the local write and
+    // re-emits the old snapshot, which would otherwise retry forever.
+    let wrote = false
     return onSnapshot(ref, (snap) => {
+      if (wrote) {
+        if (snap.exists()) setProfile(snap.data())
+        return
+      }
       if (snap.exists()) {
         const data = snap.data()
         const clean = sanitizeName(data.name || 'anonymous', isAdmin)
+        const fix = {}
         if (clean !== data.name) {
-          setDoc(ref, { name: clean, nameLower: clean.toLowerCase() }, { merge: true }).catch(
-            () => {}
-          )
+          fix.name = clean
+          fix.nameLower = clean.toLowerCase()
+        }
+        if (data.photo != null && !isAvatarDataUrl(data.photo)) fix.photo = null
+        if (Object.keys(fix).length) {
+          wrote = true
+          setDoc(ref, fix, { merge: true }).catch(() => {})
         }
         if (!data.emailHash && user.email) {
+          wrote = true
           sha256Hex(user.email.toLowerCase())
             .then((emailHash) => setDoc(ref, { emailHash }, { merge: true }))
             .catch(() => {})
@@ -96,13 +122,14 @@ export function useProfile() {
         setProfile(data)
       } else {
         const name = sanitizeName(user.displayName || 'anonymous', isAdmin)
+        wrote = true
         sha256Hex((user.email || '').toLowerCase())
           .then((emailHash) =>
             setDoc(ref, {
               name,
               nameLower: name.toLowerCase(),
               emailHash,
-              photo: user.photoURL || null,
+              photo: null,
               createdAt: serverTimestamp(),
             })
           )
@@ -120,7 +147,12 @@ export function useProfile() {
         data.name = clean
         data.nameLower = clean.toLowerCase()
       }
-      if (photo !== undefined) data.photo = photo
+      if (photo !== undefined) {
+        if (photo !== null && !isAvatarDataUrl(photo)) {
+          throw new Error('Profile pictures must be an uploaded JPEG, PNG or WebP image')
+        }
+        data.photo = photo
+      }
       await setDoc(doc(db, 'profiles', user.uid), data, { merge: true })
       profileNameCache.delete(user.uid)
     },

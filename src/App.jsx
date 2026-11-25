@@ -3,7 +3,7 @@ import { AuthProvider } from './hooks/useAuth'
 import { useReactions } from './hooks/useReactions'
 import { useProblems } from './hooks/useProblems'
 import { useFriends } from './hooks/useFriends'
-import { useProfile } from './hooks/useProfile'
+import { avatarSrc, useProfile } from './hooks/useProfile'
 import { useChatAlerts } from './hooks/useChatAlerts'
 import { useGroups } from './hooks/useGroups'
 import { useAdmin } from './hooks/useAdmin'
@@ -213,8 +213,8 @@ function Main() {
             <div className="avatar avatar-sm avatar-fallback">
               {(toast.group.name || '?')[0].toUpperCase()}
             </div>
-          ) : toast.friend.profile?.photo ? (
-            <img className="avatar avatar-sm" src={toast.friend.profile.photo} alt="" />
+          ) : avatarSrc(toast.friend.profile) ? (
+            <img className="avatar avatar-sm" src={avatarSrc(toast.friend.profile)} alt="" />
           ) : (
             <div className="avatar avatar-sm avatar-fallback">
               {(toast.friend.profile?.name || '?')[0].toUpperCase()}

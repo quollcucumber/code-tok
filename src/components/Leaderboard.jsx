@@ -4,6 +4,7 @@ import { db } from '../lib/firebase'
 import { useAuth } from '../hooks/useAuth'
 import { useAdminUids } from '../hooks/useAdmin'
 import AdminBadge from './AdminBadge'
+import { avatarSrc } from '../hooks/useProfile'
 
 const MEDALS = ['🥇', '🥈', '🥉']
 
@@ -82,8 +83,8 @@ export default function Leaderboard({ onSignIn }) {
               key={p.uid}
             >
               <span className="board-rank">{MEDALS[i] || i + 1}</span>
-              {p.photo ? (
-                <img className="avatar avatar-sm" src={p.photo} alt="" />
+              {avatarSrc(p) ? (
+                <img className="avatar avatar-sm" src={avatarSrc(p)} alt="" />
               ) : (
                 <div className="avatar avatar-sm avatar-fallback">
                   {(p.name || '?')[0].toUpperCase()}

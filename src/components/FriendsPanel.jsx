@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { useAdminUids } from '../hooks/useAdmin'
 import AdminBadge from './AdminBadge'
+import { avatarSrc } from '../hooks/useProfile'
 
 function Avatar({ profile }) {
-  return profile?.photo ? (
-    <img className="avatar avatar-sm" src={profile.photo} alt="" />
+  return avatarSrc(profile) ? (
+    <img className="avatar avatar-sm" src={avatarSrc(profile)} alt="" />
   ) : (
     <div className="avatar avatar-sm avatar-fallback">
       {(profile?.name || '?')[0].toUpperCase()}

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
+import { avatarSrc } from '../hooks/useProfile'
 
 export default function TopBar({
   onSignInClick,
@@ -172,8 +173,8 @@ export default function TopBar({
               )}
             </button>
             <button className="topbar-profile" onClick={onProfileClick} aria-label="Edit profile">
-              {profile?.photo ? (
-                <img className="avatar avatar-sm" src={profile.photo} alt="" />
+              {avatarSrc(profile) ? (
+                <img className="avatar avatar-sm" src={avatarSrc(profile)} alt="" />
               ) : (
                 <div className="avatar avatar-sm avatar-fallback">
                   {(profile?.name || user.displayName || user.email || '?')[0].toUpperCase()}
